@@ -1,0 +1,10 @@
+describe("npackages.ft", function()
+	it("can be required without setup", function()
+		require("npackages")
+	end)
+
+	it("can setup without arguments", function()
+		local ft = require("npackages.ft")
+		ft.setup()
+	end)
+end)

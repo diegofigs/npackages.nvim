@@ -1,0 +1,192 @@
+{
+  "_id": "pure-rand",
+  "_rev": "47-22b3fee90ae5e2f6eeb4cb66752a5983",
+  "name": "pure-rand",
+  "dist-tags": {
+    "latest": "6.1.0",
+    "next": "3.0.0-alpha.2.0.0.2",
+    "experimental": "5.0.0-experimental.4.2.1.0"
+  },
+  "versions": {
+    "6.1.0": {
+      "name": "pure-rand",
+      "version": "6.1.0",
+      "description": " Pure random number generator written in TypeScript",
+      "type": "commonjs",
+      "main": "lib/pure-rand.js",
+      "exports": {
+        "./package.json": "./package.json",
+        ".": {
+          "require": {
+            "types": "./lib/types/pure-rand.d.ts",
+            "default": "./lib/pure-rand.js"
+          },
+          "import": {
+            "types": "./lib/esm/types/pure-rand.d.ts",
+            "default": "./lib/esm/pure-rand.js"
+          }
+        }
+      },
+      "module": "lib/esm/pure-rand.js",
+      "types": "lib/types/pure-rand.d.ts",
+      "sideEffects": false,
+      "packageManager": "yarn@4.1.1",
+      "scripts": {
+        "format:check": "prettier --list-different .",
+        "format": "prettier --write .",
+        "build": "tsc && tsc -p ./tsconfig.declaration.json",
+        "build:esm": "tsc --module es2015 --outDir lib/esm --moduleResolution node && tsc -p ./tsconfig.declaration.json --outDir lib/esm/types && cp package.esm-template.json lib/esm/package.json",
+        "build:prod": "yarn build && yarn build:esm && node postbuild/main.cjs",
+        "build:prod-ci": "cross-env EXPECT_GITHUB_SHA=true yarn build:prod",
+        "test": "jest --config jest.config.js --coverage",
+        "build:bench:old": "tsc --outDir lib-reference/",
+        "build:bench:new": "tsc --outDir lib-test/",
+        "bench": "node perf/benchmark.cjs"
+      },
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/dubzzz/pure-rand.git"
+      },
+      "author": { "name": "Nicolas DUBIEN", "email": "github@dubien.org" },
+      "license": "MIT",
+      "bugs": { "url": "https://github.com/dubzzz/pure-rand/issues" },
+      "homepage": "https://github.com/dubzzz/pure-rand#readme",
+      "devDependencies": {
+        "@types/jest": "^29.5.12",
+        "@types/node": "^20.11.30",
+        "cross-env": "^7.0.3",
+        "fast-check": "^3.16.0",
+        "jest": "^29.7.0",
+        "prettier": "3.2.5",
+        "replace-in-file": "^7.1.0",
+        "source-map-support": "^0.5.21",
+        "tinybench": "^2.6.0",
+        "ts-jest": "^29.1.2",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.4.2"
+      },
+      "keywords": [
+        "seed",
+        "random",
+        "prng",
+        "generator",
+        "pure",
+        "rand",
+        "mersenne",
+        "random number generator",
+        "fastest",
+        "fast"
+      ],
+      "funding": [
+        { "type": "individual", "url": "https://github.com/sponsors/dubzzz" },
+        {
+          "type": "opencollective",
+          "url": "https://opencollective.com/fast-check"
+        }
+      ],
+      "_id": "pure-rand@6.1.0",
+      "_integrity": "sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==",
+      "_resolved": "/home/runner/work/pure-rand/pure-rand/package.tgz",
+      "_from": "file:package.tgz",
+      "_nodeVersion": "18.19.1",
+      "_npmVersion": "10.5.0",
+      "dist": {
+        "integrity": "sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==",
+        "shasum": "d173cf23258231976ccbdb05247c9787957604f2",
+        "tarball": "https://registry.npmjs.org/pure-rand/-/pure-rand-6.1.0.tgz",
+        "fileCount": 73,
+        "unpackedSize": 84036,
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/pure-rand@6.1.0",
+          "provenance": { "predicateType": "https://slsa.dev/provenance/v1" }
+        },
+        "signatures": [
+          {
+            "keyid": "SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA",
+            "sig": "MEUCIQCmSE/f67vERzU/3ZpN5Fn0a+89r7vDibV4z8JreusgWQIgKBqcFKK3fNEwun9rA0XKspwwGJP2P3Y+CUSLb4orb0M="
+          }
+        ]
+      },
+      "_npmUser": { "name": "ndubien", "email": "npm@dubien.org" },
+      "directories": {},
+      "maintainers": [{ "name": "ndubien", "email": "npm@dubien.org" }],
+      "_npmOperationalInternal": {
+        "host": "s3://npm-registry-packages",
+        "tmp": "tmp/pure-rand_6.1.0_1710970189006_0.4839162102152734"
+      },
+      "_hasShrinkwrap": false
+    }
+  },
+  "time": {
+    "created": "2018-03-01T21:13:57.964Z",
+    "0.0.0": "2018-03-01T21:13:58.048Z",
+    "modified": "2024-03-20T21:29:49.893Z",
+    "1.0.1": "2018-03-06T19:09:15.490Z",
+    "1.0.2": "2018-03-06T19:34:45.932Z",
+    "1.1.0": "2018-05-21T20:45:26.760Z",
+    "1.1.1": "2018-05-30T18:11:22.603Z",
+    "1.2.0": "2018-08-17T00:19:37.102Z",
+    "1.3.0": "2018-09-29T23:37:15.209Z",
+    "1.3.1": "2018-09-29T23:57:18.562Z",
+    "1.3.2": "2018-09-30T11:08:59.060Z",
+    "1.4.0": "2018-10-05T23:17:34.598Z",
+    "1.4.1": "2018-10-06T10:19:25.259Z",
+    "1.4.2": "2018-10-07T21:25:45.631Z",
+    "1.5.0": "2018-10-12T22:23:15.547Z",
+    "1.6.0": "2018-12-16T02:31:25.552Z",
+    "1.6.2": "2019-01-03T20:32:31.527Z",
+    "1.7.0": "2019-10-21T21:00:42.776Z",
+    "2.0.0": "2020-01-23T22:11:25.347Z",
+    "3.0.0-alpha.2.0.0.0": "2020-04-04T21:56:26.370Z",
+    "3.0.0-alpha.2.0.0.1": "2020-04-04T22:32:51.569Z",
+    "3.0.0-alpha.2.0.0.2": "2020-04-05T10:11:05.249Z",
+    "3.0.0": "2020-07-10T06:56:29.778Z",
+    "3.1.0": "2020-08-10T19:52:36.646Z",
+    "4.0.0": "2020-11-05T21:05:02.159Z",
+    "4.1.0": "2020-11-22T18:34:04.324Z",
+    "4.1.1": "2020-11-29T17:26:13.606Z",
+    "4.1.2": "2021-01-25T19:07:08.030Z",
+    "5.0.0-experimental.4.1.2.0": "2021-06-03T19:39:11.633Z",
+    "5.0.0-experimental.4.1.2.1": "2021-06-05T18:32:37.642Z",
+    "4.2.0": "2021-06-05T18:48:56.216Z",
+    "4.2.1": "2021-06-07T17:54:35.043Z",
+    "5.0.0-experimental.4.2.1.0": "2021-06-07T22:54:16.502Z",
+    "5.0.0": "2021-06-11T07:16:39.373Z",
+    "5.0.1": "2022-03-17T19:14:12.491Z",
+    "5.0.2": "2022-09-08T21:51:30.017Z",
+    "5.0.3": "2022-09-08T22:02:21.567Z",
+    "5.0.4": "2022-11-22T19:57:52.131Z",
+    "5.0.5": "2022-11-22T20:11:15.149Z",
+    "6.0.0": "2023-01-12T22:13:13.142Z",
+    "6.0.1": "2023-03-12T21:03:42.902Z",
+    "6.0.2": "2023-04-25T07:08:41.392Z",
+    "6.0.3": "2023-09-04T20:21:05.060Z",
+    "6.0.4": "2023-09-27T17:07:42.224Z",
+    "6.1.0": "2024-03-20T21:29:49.243Z"
+  },
+  "maintainers": [{ "name": "ndubien", "email": "npm@dubien.org" }],
+  "description": " Pure random number generator written in TypeScript",
+  "homepage": "https://github.com/dubzzz/pure-rand#readme",
+  "keywords": [
+    "seed",
+    "random",
+    "prng",
+    "generator",
+    "pure",
+    "rand",
+    "mersenne",
+    "random number generator",
+    "fastest",
+    "fast"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dubzzz/pure-rand.git"
+  },
+  "author": { "name": "Nicolas DUBIEN", "email": "github@dubien.org" },
+  "bugs": { "url": "https://github.com/dubzzz/pure-rand/issues" },
+  "license": "MIT",
+  "readme": "<h1>\n  <img src=\"https://raw.githubusercontent.com/dubzzz/pure-rand/main/assets/logo.svg\" alt=\"pure-rand logo\" />\n</h1>\n\nFast Pseudorandom number generators (aka PRNG) with purity in mind!\n\n[![Build Status](https://github.com/dubzzz/pure-rand/workflows/Build%20Status/badge.svg?branch=main)](https://github.com/dubzzz/pure-rand/actions)\n[![NPM Version](https://badge.fury.io/js/pure-rand.svg)](https://badge.fury.io/js/pure-rand)\n[![Monthly Downloads](https://img.shields.io/npm/dm/pure-rand)](https://www.npmjs.com/package/pure-rand)\n\n[![Codecov](https://codecov.io/gh/dubzzz/pure-rand/branch/main/graph/badge.svg)](https://codecov.io/gh/dubzzz/pure-rand)\n[![Package Quality](https://packagequality.com/shield/pure-rand.svg)](https://packagequality.com/#?package=pure-rand)\n[![Snyk Package Quality](https://snyk.io/advisor/npm-package/pure-rand/badge.svg)](https://snyk.io/advisor/npm-package/pure-rand)\n\n[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/dubzzz/pure-rand/labels/good%20first%20issue)\n[![License](https://img.shields.io/npm/l/pure-rand.svg)](https://github.com/dubzzz/pure-rand/blob/main/LICENSE)\n[![Twitter](https://img.shields.io/twitter/url/https/github.com/dubzzz/pure-rand.svg?style=social)](https://twitter.com/intent/tweet?text=Check%20out%20pure-rand%20by%20%40ndubien%20https%3A%2F%2Fgithub.com%2Fdubzzz%2Fpure-rand%20%F0%9F%91%8D)\n\n## Getting started\n\n**Install it in node via:**\n\n`npm install pure-rand` or `yarn add pure-rand`\n\n**Use it in browser by doing:**\n\n`import * as prand from 'https://unpkg.com/pure-rand/lib/esm/pure-rand.js';`\n\n## Usage\n\n**Simple usage**\n\n```javascript\nimport prand from 'pure-rand';\n\nconst seed = 42;\nconst rng = prand.xoroshiro128plus(seed);\nconst firstDiceValue = prand.unsafeUniformIntDistribution(1, 6, rng); // value in {1..6}, here: 2\nconst secondDiceValue = prand.unsafeUniformIntDistribution(1, 6, rng); // value in {1..6}, here: 4\nconst thirdDiceValue = prand.unsafeUniformIntDistribution(1, 6, rng); // value in {1..6}, here: 6\n```\n\n**Pure usage**\n\nPure means that the instance `rng` will never be altered in-place. It can be called again and again and it will always return the same value. But it will also return the next `rng`. Here is an example showing how the code above can be translated into its pure version:\n\n```javascript\nimport prand from 'pure-rand';\n\nconst seed = 42;\nconst rng1 = prand.xoroshiro128plus(seed);\nconst [firstDiceValue, rng2] = prand.uniformIntDistribution(1, 6, rng1); // value in {1..6}, here: 2\nconst [secondDiceValue, rng3] = prand.uniformIntDistribution(1, 6, rng2); // value in {1..6}, here: 4\nconst [thirdDiceValue, rng4] = prand.uniformIntDistribution(1, 6, rng3); // value in {1..6}, here: 6\n\n// You can call: prand.uniformIntDistribution(1, 6, rng1);\n// over and over it will always give you back the same value along with a new rng (always producing the same values too).\n```\n\n**Independent simulations**\n\nIn order to produce independent simulations it can be tempting to instanciate several PRNG based on totally different seeds. While it would produce distinct set of values, the best way to ensure fully unrelated sequences is rather to use jumps. Jump just consists into moving far away from the current position in the generator (eg.: jumping in Xoroshiro 128+ will move you 2<sup>64</sup> generations away from the current one on a generator having a sequence of 2<sup>128</sup> elements).\n\n```javascript\nimport prand from 'pure-rand';\n\nconst seed = 42;\nconst rngSimulation1 = prand.xoroshiro128plus(seed);\nconst rngSimulation2 = rngSimulation1.jump(); // not in-place, creates a new instance\nconst rngSimulation3 = rngSimulation2.jump(); // not in-place, creates a new instance\n\nconst diceSim1Value = prand.unsafeUniformIntDistribution(1, 6, rngSimulation1); // value in {1..6}, here: 2\nconst diceSim2Value = prand.unsafeUniformIntDistribution(1, 6, rngSimulation2); // value in {1..6}, here: 5\nconst diceSim3Value = prand.unsafeUniformIntDistribution(1, 6, rngSimulation3); // value in {1..6}, here: 6\n```\n\n**Non-uniform usage**\n\nWhile not recommended as non-uniform distribution implies that one or several values from the range will be more likely than others, it might be tempting for people wanting to maximize the throughput.\n\n```javascript\nimport prand from 'pure-rand';\n\nconst seed = 42;\nconst rng = prand.xoroshiro128plus(seed);\nconst rand = (min, max) => {\n  const out = (rng.unsafeNext() >>> 0) / 0x100000000;\n  return min + Math.floor(out * (max - min + 1));\n};\nconst firstDiceValue = rand(1, 6); // value in {1..6}, here: 6\n```\n\n**Select your seed**\n\nWhile not perfect, here is a rather simple way to generate a seed for your PNRG.\n\n```javascript\nconst seed = Date.now() ^ (Math.random() * 0x100000000);\n```\n\n## Documentation\n\n### Pseudorandom number generators\n\nIn computer science most random number generators<sup>(1)</sup> are [pseudorandom number generators](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) (abbreviated: PRNG). In other words, they are fully deterministic and given the original seed one can rebuild the whole sequence.\n\nEach PRNG algorithm has to deal with tradeoffs in terms of randomness quality, speed, length of the sequence<sup>(2)</sup>... In other words, it's important to compare relative speed of libraries with that in mind. Indeed, a Mersenne Twister PRNG will not have the same strenghts and weaknesses as a Xoroshiro PRNG, so depending on what you need exactly you might prefer one PRNG over another even if it will be slower.\n\n4 PRNGs come with pure-rand:\n\n- `congruential32`: Linear Congruential generator — \\[[more](https://en.wikipedia.org/wiki/Linear_congruential_generator)\\]\n- `mersenne`: Mersenne Twister generator — \\[[more](https://en.wikipedia.org/wiki/Mersenne_Twister)\\]\n- `xorshift128plus`: Xorshift 128+ generator — \\[[more](https://en.wikipedia.org/wiki/Xorshift)\\]\n- `xoroshiro128plus`: Xoroshiro 128+ generator — \\[[more](https://en.wikipedia.org/wiki/Xorshift)\\]\n\nOur recommendation is `xoroshiro128plus`. But if you want to use another one, you can replace it by any other PRNG provided by pure-rand in the examples above.\n\n### Distributions\n\nOnce you are able to generate random values, next step is to scale them into the range you want. Indeed, you probably don't want a floating point value between 0 (included) and 1 (excluded) but rather an integer value between 1 and 6 if you emulate a dice or any other range based on your needs.\n\nAt this point, simple way would be to do `min + floor(random() * (max - min + 1))` but actually it will not generate the values with equal probabilities even if you use the best PRNG in the world to back `random()`. In order to have equal probabilities you need to rely on uniform distributions<sup>(3)</sup> which comes built-in in some PNRG libraries.\n\npure-rand provides 3 built-in functions for uniform distributions of values:\n\n- `uniformIntDistribution(min, max, rng)`\n- `uniformBigIntDistribution(min, max, rng)` - with `min` and `max` being `bigint`\n- `uniformArrayIntDistribution(min, max, rng)` - with `min` and `max` being instances of `ArrayInt = {sign, data}` ie. sign either 1 or -1 and data an array of numbers between 0 (included) and 0xffffffff (included)\n\nAnd their unsafe equivalents to change the PRNG in-place.\n\n### Extra helpers\n\nSome helpers are also provided in order to ease the use of `RandomGenerator` instances:\n\n- `prand.generateN(rng: RandomGenerator, num: number): [number[], RandomGenerator]`: generates `num` random values using `rng` and return the next `RandomGenerator`\n- `prand.skipN(rng: RandomGenerator, num: number): RandomGenerator`: skips `num` random values and return the next `RandomGenerator`\n\n## Comparison\n\n### Summary\n\nThe chart has been split into three sections:\n\n- section 1: native `Math.random()`\n- section 2: without uniform distribution of values\n- section 3: with uniform distribution of values (not supported by all libraries)\n\n<img src=\"https://raw.githubusercontent.com/dubzzz/pure-rand/main/perf/comparison.svg\" alt=\"Comparison against other libraries\" />\n\n### Process\n\nIn order to compare the performance of the libraries, we aked them to shuffle an array containing 1,000,000 items (see [code](https://github.com/dubzzz/pure-rand/blob/556ec331c68091c5d56e9da1266112e8ea222b2e/perf/compare.cjs)).\n\nWe then split the measurements into two sections:\n\n- one for non-uniform distributions — _known to be slower as it implies re-asking for other values to the PRNG until the produced value fall into the acceptable range of values_\n- one for uniform distributions\n\nThe recommended setup for pure-rand is to rely on our Xoroshiro128+. It provides a long enough sequence of random values, has built-in support for jump, is really efficient while providing a very good quality of randomness.\n\n### Performance\n\n**Non-Uniform**\n\n| Library                  | Algorithm         | Mean time (ms) | Compared to pure-rand |\n| ------------------------ | ----------------- | -------------- | --------------------- |\n| native \\(node 16.19.1\\)  | Xorshift128+      | 33.3           | 1.4x slower           |\n| **pure-rand _@6.0.0_**   | **Xoroshiro128+** | **24.5**       | **reference**         |\n| pure-rand _@6.0.0_       | Xorshift128+      | 25.0           | similar               |\n| pure-rand _@6.0.0_       | Mersenne Twister  | 30.8           | 1.3x slower           |\n| pure-rand _@6.0.0_       | Congruential‍     | 22.6           | 1.1x faster           |\n| seedrandom _@3.0.5_      | Alea              | 28.1           | 1.1x slower           |\n| seedrandom _@3.0.5_      | Xorshift128       | 28.8           | 1.2x slower           |\n| seedrandom _@3.0.5_      | Tyche-i           | 28.6           | 1.2x slower           |\n| seedrandom _@3.0.5_      | Xorwow            | 32.0           | 1.3x slower           |\n| seedrandom _@3.0.5_      | Xor4096           | 32.2           | 1.3x slower           |\n| seedrandom _@3.0.5_      | Xorshift7         | 33.5           | 1.4x slower           |\n| @faker-js/faker _@7.6.0_ | Mersenne Twister  | 109.1          | 4.5x slower           |\n| chance _@1.1.10_         | Mersenne Twister  | 142.9          | 5.8x slower           |\n\n**Uniform**\n\n| Library                | Algorithm         | Mean time (ms) | Compared to pure-rand |\n| ---------------------- | ----------------- | -------------- | --------------------- |\n| **pure-rand _@6.0.0_** | **Xoroshiro128+** | **53.5**       | **reference**         |\n| pure-rand _@6.0.0_     | Xorshift128+      | 52.2           | similar               |\n| pure-rand _@6.0.0_     | Mersenne Twister  | 61.6           | 1.2x slower           |\n| pure-rand _@6.0.0_     | Congruential‍     | 57.6           | 1.1x slower           |\n| random-js @2.1.0       | Mersenne Twister  | 119.6          | 2.2x slower           |\n\n> System details:\n>\n> - OS: Linux 5.15 Ubuntu 22.04.2 LTS 22.04.2 LTS (Jammy Jellyfish)\n> - CPU: (2) x64 Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz\n> - Memory: 5.88 GB / 6.78 GB\n> - Container: Yes\n> - Node: 16.19.1 - /opt/hostedtoolcache/node/16.19.1/x64/bin/node\n>\n> _Executed on default runners provided by GitHub Actions_\n\n---\n\n(1) — Not all as there are also [hardware-based random number generator](https://en.wikipedia.org/wiki/Hardware_random_number_generator).\n\n(2) — How long it takes to reapeat itself?\n\n(3) — While most users don't really think of it, uniform distribution is key! Without it entries might be biased towards some values and make some others less probable. The naive `rand() % numValues` is a good example of biased version as if `rand()` is uniform in `0, 1, 2` and `numValues` is `2`, the probabilities are: `P(0) = 67%`, `P(1) = 33%` causing `1` to be less probable than `0`\n",
+  "readmeFilename": "README.md",
+  "users": { "flumpus-dev": true }
+}

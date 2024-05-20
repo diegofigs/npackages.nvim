@@ -1,0 +1,42 @@
+---
+name: CI
+on:
+  pull_request: ~
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Run tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        neovim_version: ["nightly"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: date +%F > todays-date
+      - name: Restore cache for today's nightly.
+        uses: actions/cache@v4
+        with:
+          path: _neovim
+          key: ${{ runner.os }}-x64-${{ hashFiles('todays-date') }}
+      - name: Setup neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim_version }}
+
+      - name: Setup Lua
+        uses: leso-kn/gh-actions-lua@master
+        with:
+          luaVersion: "5.1"
+
+      - name: Setup Luarocks
+        uses: hishamhm/gh-actions-luarocks@master
+        with:
+          luarocksVersion: "3.11.0"
+
+      - name: Run tests
+        run: make test
