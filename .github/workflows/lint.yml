@@ -33,5 +33,6 @@ jobs:
         env:
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINTER_RULES_PATH: /
           # TODO: reenable once linter config is figured out
           VALIDATE_JSCPD: false
