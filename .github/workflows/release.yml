@@ -5,8 +5,13 @@ on:
     tags:
       - "v*.*.*"
 
+permissions: {}
+
 jobs:
   luarocks-release:
+    permissions:
+      contents: read
+      packages: read
     runs-on: ubuntu-latest
     name: Luarocks Release
     steps:

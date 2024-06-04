@@ -6,8 +6,13 @@ on:
     branches:
       - main
 
+permissions: {}
+
 jobs:
   build:
+    permissions:
+      contents: read
+      packages: read
     name: Run tests
     runs-on: ubuntu-latest
     strategy:
