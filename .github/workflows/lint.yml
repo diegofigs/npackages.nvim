@@ -28,11 +28,11 @@ jobs:
           # list of files that changed across commits
           fetch-depth: 0
 
-      - name: Super-linter
-        uses: super-linter/super-linter/slim@v6.6.0
+      - name: Lint
+        uses: github/super-linter/slim@v6
         env:
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINTER_RULES_PATH: /
           # TODO: reenable once linter config is figured out
-          VALIDATE_LUA: false
           VALIDATE_JSCPD: false

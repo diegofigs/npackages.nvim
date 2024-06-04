@@ -90,8 +90,8 @@ function M.get_newest(versions, reqs)
 
 	local allow_pre = reqs and semver.allows_pre(reqs) or false
 
-	---@type ApiVersion|nil, ApiVersion|nil, ApiVersion|nil
-	local newest_yanked, newest_pre, newest
+	---@type ApiVersion|nil, ApiVersion|nil
+	local newest_pre, newest
 
 	for _, v in ipairs(versions) do
 		if not reqs or semver.matches_requirements(v.parsed, reqs) then
@@ -108,7 +108,7 @@ function M.get_newest(versions, reqs)
 		end
 	end
 
-	return newest, newest_pre, newest_yanked
+	return newest, newest_pre
 end
 
 ---@param name string
