@@ -1,6 +1,8 @@
 # npackages.nvim
 
 [![CI](https://github.com/diegofigs/npackages.nvim/actions/workflows/ci.yml/badge.svg)](https://github.com/diegofigs/npackages.nvim/actions/workflows/ci.yml)
+[![Super-Linter](https://github.com/diegofigs/npackages.nvim/actions/workflows/lint.yml/badge.svg)](https://github.com/diegofigs/npackages.nvim/actions/workflows/lint.yml)
+![GitHub License](https://img.shields.io/github/license/diegofigs/npackages.nvim)
 ![LOC](https://tokei.rs/b1/github/diegofigs/npackages.nvim?category=code)
 
 A neovim plugin that helps managing npm dependencies.
