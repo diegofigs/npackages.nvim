@@ -29,7 +29,7 @@ Plug 'diegofigs/npackages.nvim'
 This plugin automatically configures an LSP client
 that will provide diagnostics for your package dependencies.
 
-This is a filetype plugin that works out of the box,
+This is a file type plugin that works out of the box,
 so there is no need to call a `setup` function or configure anything
 to get this plugin working.
 
