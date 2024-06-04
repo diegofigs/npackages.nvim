@@ -82,24 +82,24 @@ end
 ---  1. Trigger keyword completion
 ---  2. Detect menu start offset
 ---  3. Reset completion state
----@param _params CmpSourceBaseApiParams
+---@param _ CmpSourceBaseApiParams
 ---@return string
-function M:get_keyword_pattern(_params)
+function M:get_keyword_pattern(_)
 	return [[\([^"'\%^<>=~,\s]\)*]]
 end
 
 ---Return trigger characters.
----@param _params CmpSourceBaseApiParams
+---@param _ CmpSourceBaseApiParams
 ---@return string[]
-function M:get_trigger_characters(_params)
+function M:get_trigger_characters(_)
 	return completion.trigger_characters
 end
 
 ---Invoke completion (required).
 ---  If you want to abort completion, just call the callback without arguments.
----@param _params CmpSourceBaseApiParams
+---@param _ CmpSourceBaseApiParams
 ---@param callback fun(list: CompletionList|nil)
-function M:complete(_params, callback)
+function M:complete(_, callback)
 	completion.complete(callback)
 end
 

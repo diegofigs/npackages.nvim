@@ -100,11 +100,11 @@ local function start_job(url, on_exit)
 		args = { unpack(state.cfg.curl_args), "-A", USERAGENT, url },
 		stdio = { nil, stdout, nil },
 	}
-	local handle, _pid
+	local handle
 	---@param code integer
 	---@param _signal integer
 	---@type uv_process_t, integer
-	handle, _pid = vim.loop.spawn("curl", opts, function(code, _signal)
+	handle = vim.loop.spawn("curl", opts, function(code, _signal)
 		handle:close()
 
 		local success = code == 0

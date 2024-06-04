@@ -95,24 +95,6 @@ local function crate_diagnostic(crate, kind, severity, scope, data)
 	return d
 end
 
----@param crate JsonPackage
----@param feat TomlFeature
----@param kind NpackagesDiagnosticKind
----@param severity integer
----@param data table<string,any>|nil
----@return NpackagesDiagnostic
-local function feat_diagnostic(crate, feat, kind, severity, data)
-	return NpackagesDiagnostic.new({
-		lnum = crate.feat.line,
-		end_lnum = crate.feat.line,
-		col = crate.feat.col.s + feat.col.s,
-		end_col = crate.feat.col.s + feat.col.e,
-		severity = severity,
-		kind = kind,
-		data = data,
-	})
-end
-
 ---@param sections JsonSection[]
 ---@param packages JsonPackage[]
 ---@return table<string,JsonPackage>
@@ -216,8 +198,8 @@ end
 ---@return NpackagesDiagnostic[]
 function M.process_api_package(package, api_package)
 	local versions = api_package and api_package.versions
-	local newest, newest_pre, newest_yanked = util.get_newest(versions, nil)
-	newest = newest or newest_pre or newest_yanked
+	local newest, newest_pre = util.get_newest(versions, nil)
+	newest = newest or newest_pre
 
 	---@type PackageInfo
 	local info = {
@@ -332,10 +314,10 @@ function M.process_api_package(package, api_package)
 end
 
 ---@param package JsonPackage
----@param version ApiVersion
+---@param _ ApiVersion
 ---@param deps ApiDependency[]
 ---@return NpackagesDiagnostic[]
-function M.process_package_deps(package, version, deps)
+function M.process_package_deps(package, _, deps)
 	if package.path or package.git then
 		return {}
 	end

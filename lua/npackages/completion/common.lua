@@ -145,7 +145,6 @@ local function complete_packages(prefix, col, line, kind)
 		insertText = function(name, version)
 			return ('%s]\nversion = "${1:%s}"'):format(name, version)
 		end
-	else
 	end
 
 	local results = {}
@@ -211,7 +210,7 @@ local function complete()
 	local api_package = state.api_cache[crate:package()]
 
 	if not api_package and api.is_fetching_crate(crate:package()) then
-		local _api_package, cancelled = api.await_crate(crate:package())
+		local _, cancelled = api.await_crate(crate:package())
 
 		if cancelled or buf ~= util.current_buf() then
 			return

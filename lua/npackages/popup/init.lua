@@ -50,19 +50,19 @@ local function line_crate_info()
 	if crate.syntax == JsonPackageSyntax.PLAIN then
 		if crate.vers.col:moved(-1, 1):contains(col) then
 			versions_info()
-		else
+			-- else
 			-- crate_info()
 		end
 	elseif crate.syntax == JsonPackageSyntax.TABLE then
 		if crate.vers and line == crate.vers.line then
 			versions_info()
-		else
+			-- else
 			-- crate_info()
 		end
 	elseif crate.syntax == JsonPackageSyntax.INLINE_TABLE then
 		if crate.vers and crate.vers.decl_col:contains(col) then
 			versions_info()
-		else
+			-- else
 			-- crate_info()
 		end
 	end

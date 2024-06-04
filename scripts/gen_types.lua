@@ -1,7 +1,4 @@
 #!/usr/bin/env lua
-_ = [[
-exec lua "$0" "$@"
-]]
 
 local config = require("lua.npackages.config.internal")
 

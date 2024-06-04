@@ -2,10 +2,7 @@ local api = require("npackages.api")
 local time = require("npackages.time")
 local DateTime = time.DateTime
 local types = require("npackages.types")
-local Cond = types.Cond
-local ApiDependencyKind = types.ApiDependencyKind
 local SemVer = types.SemVer
-local Span = types.Span
 
 describe("npackages.json", function()
 	it("can parse json", function()
