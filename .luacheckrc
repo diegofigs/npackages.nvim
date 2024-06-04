@@ -1,5 +1,6 @@
 ignore = {
 	"122",
+	"212",
 	"631", -- max_line_length
 }
 read_globals = {
@@ -7,4 +8,5 @@ read_globals = {
 	"describe",
 	"it",
 	"assert",
+	"xoffset",
 }
