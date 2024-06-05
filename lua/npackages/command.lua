@@ -9,7 +9,7 @@ local sub_commands = {
 	{ "hide", core.hide },
 	{ "show", core.show },
 	{ "toggle", core.toggle },
-	{ "sync", core.update },
+	{ "refresh", core.update },
 	{ "reload", core.reload },
 
 	{ "add", actions.add },

@@ -95,17 +95,17 @@ vim.cmd.Npackages('toggle')
 
 <details>
   <summary>
-	<b>Sync</b>
+	<b>Refresh</b>
   </summary>
 
-- `sync` refreshes diagnostics by fetching `package.json` dependencies whose cache time is expired
+- `refresh` diagnostics by fetching `package.json` dependencies whose cache time has expired
 
 ```vim
-:Npackages sync
+:Npackages refresh
 ```
 
 ```lua
-vim.cmd.Npackages('sync')
+vim.cmd.Npackages('refresh')
 ```
 
 </details>
