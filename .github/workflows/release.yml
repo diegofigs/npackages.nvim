@@ -23,3 +23,26 @@ jobs:
         if: env.LUAROCKS_API_KEY != null
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+  gh-release:
+    permissions:
+      contents: write
+    needs: luarocks-release
+    runs-on: ubuntu-latest
+    name: GitHub Release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Query version number
+        id: get_version
+        shell: bash
+        run: |
+          echo "using version tag ${GITHUB_REF:10}"
+          echo "version=${GITHUB_REF:10}" >> $GITHUB_OUTPUT
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          generate_release_notes: true
