@@ -1,13 +1,45 @@
-# npackages.nvim
+<!-- markdownlint-disable -->
+<div align="center">
+  <p align="center">
+    <h1>npackages.nvim</h1>
+    <a href="https://github.com/diegofigs/npackages.nvim/issues/new">Report Bug / Request Feature</a>
+    ·
+    <a href="https://github.com/diegofigs/npackages.nvim/discussions/new?category=q-a">Ask Question</a>
+  </h1>
+  <p>
+    <strong>
+      Supercharge your Node experience in <a href="https://neovim.io/">Neovim</a>!<br />
+      A heavily modified fork of <a href="https://github.com/Saecki/crates.nvim">crates.nvim</a><br />
+    </strong>
+  </p>
+	
+[![Neovim][neovim-shield]][neovim-url]
+[![Lua][lua-shield]][lua-url]
+[![npm][npm-shield]][npm-url]
+![loc][loc-shield]
 
-[![CI](https://github.com/diegofigs/npackages.nvim/actions/workflows/ci.yml/badge.svg)](https://github.com/diegofigs/npackages.nvim/actions/workflows/ci.yml)
-[![Super-Linter](https://github.com/diegofigs/npackages.nvim/actions/workflows/lint.yml/badge.svg)](https://github.com/diegofigs/npackages.nvim/actions/workflows/lint.yml)
-![GitHub License](https://img.shields.io/github/license/diegofigs/npackages.nvim)
-![LOC](https://tokei.rs/b1/github/diegofigs/npackages.nvim?category=code)
+[![MIT License][license-shield]][license-url]
+[![Issues][issues-shield]][issues-url]
+[![CI Status][ci-shield]][ci-url]
+[![Lint Status][lint-shield]][lint-url]
+[![LuaRocks][luarocks-shield]][luarocks-url]
 
-A neovim plugin that helps managing npm dependencies.
-Heavily modified fork of [crates.nvim](https://github.com/Saecki/crates.nvim)
-but targeted towards node's package.json
+</div>
+<!-- markdownlint-restore -->
+
+## :link: Quick Links
+
+- [:pencil: Prerequisites](#pencil-prerequisites)
+- [:inbox_tray: Installation](#inbox_tray-installation)
+- [:zap: Quick setup](#zap-quick-setup)
+- [:books: Usage / Features](#books-usage)
+
+## :pencil: Prerequisites
+
+### Required
+
+- `neovim >= 0.9`
+- `curl`
 
 ## :inbox_tray: Installation
 
@@ -15,6 +47,12 @@ but targeted towards node's package.json
 
 ```vim
 Plug 'diegofigs/npackages.nvim'
+```
+
+[**packer.nvim**](https://github.com/wbthomason/packer.nvim)
+
+```lua
+use 'diegofigs/npackages.nvim'
 ```
 
 [**lazy.nvim**](https://github.com/folke/lazy.nvim)
@@ -35,7 +73,174 @@ This is a file type plugin that works out of the box,
 so there is no need to call a `setup` function or configure anything
 to get this plugin working.
 
+## :books: Usage
+
+<!-- markdownlint-disable -->
+<details>
+  <summary>
+	<b>Toggle</b>
+  </summary>
+
+- `toggle` toggles diagnostics on/off
+
+```vim
+:Npackages toggle
+```
+
+```lua
+vim.cmd.Npackages('toggle')
+```
+
+</details>
+
+<details>
+  <summary>
+	<b>Sync</b>
+  </summary>
+
+- `sync` refreshes diagnostics by fetching `package.json` dependencies whose cache time is expired
+
+```vim
+:Npackages sync
+```
+
+```lua
+vim.cmd.Npackages('sync')
+```
+
+</details>
+
+<details>
+  <summary>
+	<b>Reload</b>
+  </summary>
+
+- `reload` refreshes diagnostics and force fetches `package.json` dependencies
+
+```vim
+:Npackages reload
+```
+
+```lua
+vim.cmd.Npackages('reload')
+```
+
+</details>
+
+<details>
+  <summary>
+	<b>Install</b>
+  </summary>
+
+- `install` runs `npm|yarn|pnpm install`
+
+```vim
+:Npackages install
+```
+
+```lua
+vim.cmd.Npackages('install')
+```
+
+</details>
+
+<details>
+  <summary>
+	<b>Add</b>
+  </summary>
+
+- `add` prompts user for dependency type, package name, version
+  and runs `npm|yarn|pnpm add [-D] <package>@<version>`
+
+```vim
+:Npackages add
+```
+
+```lua
+vim.cmd.Npackages('add')
+```
+
+</details>
+
+<details>
+  <summary>
+	<b>Update</b>
+  </summary>
+
+- `update` runs for package under cursor `npm|yarn|pnpm install <package>@latest`
+
+```vim
+:Npackages update
+```
+
+```lua
+vim.cmd.Npackages('update')
+```
+
+</details>
+
+<details>
+  <summary>
+	<b>Delete</b>
+  </summary>
+
+- `delete` runs for package under cursor `npm|yarn|pnpm remove <package>`
+
+```vim
+:Npackages delete
+```
+
+```lua
+vim.cmd.Npackages('delete')
+```
+
+</details>
+
+<details>
+  <summary>
+	<b>Change Version</b>
+  </summary>
+
+- `change_version` prompts user for new version for package under cursor
+  and runs `npm|yarn|pnpm install <package>@<version>`
+
+```vim
+:Npackages change_version
+```
+
+```lua
+vim.cmd.Npackages('change_version')
+```
+
+</details>
+
+<!-- markdownlint-enable -->
+
 ## Related projects
 
-- [Saecki/crates.nvim](https://github.com/Saecki/crates.nvim)
-- [vuki656/package-info.nvim](https://github.com/vuki656/package-info.nvim)
+- [Saecki/crates.nvim](https://github.com/Saecki/crates.nvim): base plugin structure
+  and lsp functionality
+- [mrcjkb/rustaceanvim](https://github.com/mrcjkb/rustaceanvim): huge inspiration
+  for readme, plugin structure and testing methodology
+- [vuki656/package-info.nvim](https://github.com/vuki656/package-info.nvim):
+  similar solution, provides commands but no diagnostics
+
+<!-- markdownlint-disable -->
+
+[neovim-shield]: https://img.shields.io/badge/NeoVim-%2357A143.svg?&style=for-the-badge&logo=neovim&logoColor=white
+[neovim-url]: https://neovim.io/
+[lua-shield]: https://img.shields.io/badge/lua-%232C2D72.svg?style=for-the-badge&logo=lua&logoColor=white
+[lua-url]: https://www.lua.org/
+[npm-shield]: https://img.shields.io/badge/npm-CC3534?style=for-the-badge&logo=npm&logoColor=white
+[npm-url]: https://www.npmjs.com/
+[issues-shield]: https://img.shields.io/github/issues/diegofigs/npackages.nvim.svg?style=for-the-badge
+[issues-url]: https://github.com/diegofigs/npackages.nvim/issues
+[license-shield]: https://img.shields.io/github/license/diegofigs/npackages.nvim.svg?style=for-the-badge
+[license-url]: https://github.com/diegofigs/npackages.nvim/blob/main/LICENSE
+[ci-shield]: https://img.shields.io/github/actions/workflow/status/diegofigs/npackages.nvim/ci.yml?style=for-the-badge&label=CI
+[ci-url]: https://github.com/diegofigs/npackages.nvim/actions/workflows/ci.yml
+[lint-shield]: https://img.shields.io/github/actions/workflow/status/diegofigs/npackages.nvim/lint.yml?style=for-the-badge&label=Lint
+[lint-url]: https://github.com/diegofigs/npackages.nvim/actions/workflows/lint.yml
+[luarocks-shield]: https://img.shields.io/luarocks/v/diegofigs/npackages.nvim?logo=lua&color=purple&style=for-the-badge
+[luarocks-url]: https://luarocks.org/modules/diegofigs/npackages.nvim
+[loc-shield]: https://tokei.rs/b1/github/diegofigs/npackages.nvim?category=code&style=for-the-badge
