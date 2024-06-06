@@ -41,6 +41,7 @@
 
 - `neovim >= 0.9`
 - `curl`
+- `vim.ui` implementation such as [dressing.nvim](https://github.com/stevearc/dressing.nvim)
 
 ## :inbox_tray: Installation
 
