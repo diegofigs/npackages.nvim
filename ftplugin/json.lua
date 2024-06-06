@@ -3,9 +3,10 @@ if fname ~= "package.json" then
 	return
 end
 
-if not vim.g.loaded_npackages then
-	local ft = require("npackages.ft")
-	ft.setup()
-
-	vim.g.loaded_npackages = true
+if vim.g.loaded_npackages then
+	return
 end
+vim.g.loaded_npackages = true
+
+local ft = require("npackages.ft")
+ft.setup()
