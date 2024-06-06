@@ -1,22 +1,22 @@
 <!-- markdownlint-disable -->
 <div align="center">
+  <h1>npackages.nvim</h1>
   <p align="center">
-    <h1>npackages.nvim</h1>
     <a href="https://github.com/diegofigs/npackages.nvim/issues/new">Report Bug / Request Feature</a>
     ·
     <a href="https://github.com/diegofigs/npackages.nvim/discussions/new?category=q-a">Ask Question</a>
-  </h1>
+  </p>
   <p>
     <strong>
       Supercharge your Node experience in <a href="https://neovim.io/">Neovim</a>!<br />
       A heavily modified fork of <a href="https://github.com/Saecki/crates.nvim">crates.nvim</a><br />
     </strong>
   </p>
-	
+
 [![Neovim][neovim-shield]][neovim-url]
 [![Lua][lua-shield]][lua-url]
 [![npm][npm-shield]][npm-url]
-![loc][loc-shield]
+![LoC][loc-shield]
 
 [![MIT License][license-shield]][license-url]
 [![Issues][issues-shield]][issues-url]
@@ -25,6 +25,7 @@
 [![LuaRocks][luarocks-shield]][luarocks-url]
 
 </div>
+	
 <!-- markdownlint-restore -->
 
 ## :link: Quick Links
@@ -67,11 +68,73 @@ use 'diegofigs/npackages.nvim'
 ## :zap: Quick Setup
 
 This plugin automatically configures an LSP client
-that will provide diagnostics for your package dependencies.
+that will provide diagnostics for your package.json dependencies.
+See the [Usage](#books-usage) section for more info.
 
 This is a file type plugin that works out of the box,
 so there is no need to call a `setup` function or configure anything
 to get this plugin working.
+
+You will most likely want to add some keymaps.
+Most keymaps are only useful in package.json files,
+so I suggest you define them in `vim.g.npackages.on_attach`
+
+Example:
+
+```lua
+vim.g.npackages = {
+  on_attach = function(bufnr)
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nt", "", {
+      desc = "Toggle Package Versions",
+      callback = function()
+        vim.cmd.Npackages("toggle")
+      end,
+    })
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>na", "", {
+      desc = "Add Package",
+      callback = function()
+        vim.cmd.Npackages("add")
+      end,
+    })
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nd", "", {
+      desc = "Delete Package",
+      callback = function()
+        vim.cmd.Npackages("delete")
+      end,
+    })
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nu", "", {
+      desc = "Update Package",
+      callback = function()
+        vim.cmd.Npackages("update")
+      end,
+    })
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nc", "", {
+      desc = "Change Version",
+      callback = function()
+        vim.cmd.Npackages("change_version")
+      end,
+    })
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>ni", "", {
+      desc = "Install Package Dependencies",
+      callback = function()
+        vim.cmd.Npackages("install")
+      end,
+    })
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nr", "", {
+      desc = "Refresh Packages",
+      callback = function()
+        vim.cmd.Npackages("refresh")
+      end,
+    })
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nR", "", {
+      desc = "Reload Packages",
+      callback = function()
+        vim.cmd.Npackages("reload")
+      end,
+    })
+  end,
+}
+```
 
 ## :books: Usage
 
@@ -213,8 +276,7 @@ vim.cmd.Npackages('change_version')
 ```
 
 </details>
-
-<!-- markdownlint-enable -->
+<!-- markdownlint-restore -->
 
 ## Related projects
 
