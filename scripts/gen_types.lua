@@ -1,5 +1,6 @@
 #!/usr/bin/env lua
 
+---@diagnostic disable-next-line: different-requires
 local config = require("lua.npackages.config.internal")
 
 ---@param lines string[]

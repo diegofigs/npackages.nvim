@@ -1,5 +1,6 @@
 local async = require("npackages.async")
 local command = require("npackages.command")
+---@diagnostic disable-next-line: different-requires
 local config = require("npackages.config.internal")
 local core = require("npackages.core")
 local highlight = require("npackages.highlight")
