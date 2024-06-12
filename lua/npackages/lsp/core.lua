@@ -1,22 +1,23 @@
+local state = require("npackages.lsp.state")
+local plugin_state = require("npackages.state")
 local api = require("npackages.api")
 local async = require("npackages.async")
 local diagnostic = require("npackages.diagnostic")
 local json = require("npackages.json")
-local state = require("npackages.state")
 local ui = require("npackages.ui")
 local util = require("npackages.util")
 local DepKind = json.DepKind
 
----@class Core
+---@class NpackagesLspCore
 ---@field throttled_updates table<integer,fun()[]>
 ---@field inner_throttled_update fun(buf: integer|nil, reload: boolean|nil)
 local M = {
 	throttled_updates = {},
 }
 
----@type fun(crate_name: string, versions: ApiVersion[], version: ApiVersion)
-M.reload_deps = async.wrap(function(crate_name, versions, version)
-	local deps, cancelled = api.fetch_deps(crate_name, version.num)
+---@type fun(package_name: string, versions: ApiVersion[], version: ApiVersion)
+M.reload_deps = async.wrap(function(package_name, versions, version)
+	local deps, cancelled = api.fetch_deps(package_name, version.num)
 	if cancelled then
 		return
 	end
@@ -34,15 +35,16 @@ M.reload_deps = async.wrap(function(crate_name, versions, version)
 		end
 		-- version.features:sort()
 
-		for b, cache in pairs(state.buf_cache) do
+		for uri, cache in pairs(state.doc_cache) do
+			local b = vim.uri_to_bufnr(uri)
 			-- update crate in all dependency sections
-			for _, c in pairs(cache.packages) do
-				if c:package() == crate_name then
-					local m, p, y = util.get_newest(versions, c:vers_reqs())
+			for _, pkg in pairs(cache.packages) do
+				if pkg:package() == package_name then
+					local m, p, y = util.get_newest(versions, pkg:vers_reqs())
 					local match = m or p or y
 
-					if c.vers and match == version and vim.api.nvim_buf_is_loaded(b) then
-						local diagnostics = diagnostic.process_package_deps(c, version, deps)
+					if pkg.vers and match == version and vim.api.nvim_buf_is_loaded(b) then
+						local diagnostics = diagnostic.process_package_deps(pkg, version, deps)
 						ui.display_diagnostics(b, diagnostics)
 					end
 				end
@@ -51,9 +53,9 @@ M.reload_deps = async.wrap(function(crate_name, versions, version)
 	end
 end)
 
----@type fun(crate_name: string)
-M.reload_crate = async.wrap(function(crate_name)
-	local crate, cancelled = api.fetch_crate(crate_name)
+---@type fun(package_name: string)
+M.reload_package = async.wrap(function(package_name)
+	local crate, cancelled = api.fetch_crate(package_name)
 	local versions = crate and crate.versions
 	if cancelled then
 		return
@@ -64,15 +66,16 @@ M.reload_crate = async.wrap(function(crate_name)
 		state.api_cache[crate.name] = crate
 	end
 
-	for b, cache in pairs(state.buf_cache) do
+	for uri, cache in pairs(state.doc_cache) do
+		local b = vim.uri_to_bufnr(uri)
 		-- update crate in all dependency sections
-		for k, c in pairs(cache.packages) do
-			if c.dep_kind ~= DepKind.REGISTRY or c.registry ~= nil then
+		for k, pkg in pairs(cache.packages) do
+			if pkg.dep_kind ~= DepKind.REGISTRY or pkg.registry ~= nil then
 				goto continue
 			end
 
-			if c:package() == crate_name and vim.api.nvim_buf_is_loaded(b) then
-				local info, diagnostics = diagnostic.process_api_package(c, crate)
+			if pkg:package() == package_name and vim.api.nvim_buf_is_loaded(b) then
+				local info, diagnostics = diagnostic.process_api_package(pkg, crate)
 				cache.info[k] = info
 				vim.list_extend(cache.diagnostics, diagnostics)
 
@@ -81,7 +84,7 @@ M.reload_crate = async.wrap(function(crate_name)
 				local version = info.vers_match or info.vers_upgrade
 				if version then
 					---@cast versions -nil
-					M.reload_deps(c:package(), versions, version)
+					M.reload_deps(pkg:package(), versions, version)
 				end
 			end
 
@@ -90,41 +93,45 @@ M.reload_crate = async.wrap(function(crate_name)
 	end
 end)
 
----@param buf integer|nil
+---@param uri lsp.DocumentUri
 ---@param reload boolean|nil
-local function update(buf, reload)
-	buf = buf or util.current_buf()
+local function update(uri, reload)
+	local doc = state.documents[uri]
+	local buf = vim.uri_to_bufnr(uri)
 
 	if reload then
 		state.api_cache = {}
 		api.cancel_jobs()
 	end
 
-	local sections, packages, working_crates = json.parse_packages(buf)
+	local lines = {}
+	for s in doc.text:gmatch("[^\r\n]+") do
+		table.insert(lines, s)
+	end
+	local sections, packages, working_crates = json.parse_packages(lines)
 
 	local package_cache, diagnostics = diagnostic.process_packages(sections, packages)
-	---@type BufCache
 	local cache = {
 		packages = package_cache,
 		info = {},
-		diagnostics = diagnostics,
+		diagnostics = {},
 		working_crates = working_crates,
 	}
-	state.buf_cache[buf] = cache
+	state.doc_cache[uri] = cache
 
 	ui.clear(buf)
-	ui.display_diagnostics(buf, diagnostics)
-	for k, c in pairs(package_cache) do
-		if c.dep_kind ~= DepKind.REGISTRY or c.registry ~= nil then
+	-- ui.display_diagnostics(buf, diagnostics)
+	for cache_key, pkg in pairs(package_cache) do
+		if pkg.dep_kind ~= DepKind.REGISTRY or pkg.registry ~= nil then
 			goto continue
 		end
 
-		local api_package = state.api_cache[c:package()]
+		local api_package = state.api_cache[pkg:package()]
 		local versions = api_package and api_package.versions
 
 		if not reload and api_package then
-			local info, c_diagnostics = diagnostic.process_api_package(c, api_package)
-			cache.info[k] = info
+			local info, c_diagnostics = diagnostic.process_api_package(pkg, api_package)
+			cache.info[cache_key] = info
 			vim.list_extend(cache.diagnostics, c_diagnostics)
 
 			ui.display_crate_info(buf, info, c_diagnostics)
@@ -132,20 +139,20 @@ local function update(buf, reload)
 			local version = info.vers_match or info.vers_upgrade
 			if version then
 				if version.deps then
-					local d_diagnostics = diagnostic.process_package_deps(c, version, version.deps)
+					local d_diagnostics = diagnostic.process_package_deps(pkg, version, version.deps)
 					vim.list_extend(cache.diagnostics, d_diagnostics)
 
 					ui.display_diagnostics(buf, d_diagnostics)
 				else
-					M.reload_deps(c:package(), versions, version)
+					M.reload_deps(pkg:package(), versions, version)
 				end
 			end
 		else
-			if state.cfg.loading_indicator then
-				ui.display_loading(buf, c)
+			if plugin_state.cfg.loading_indicator then
+				ui.display_loading(buf, pkg)
 			end
 
-			M.reload_crate(c:package())
+			M.reload_package(pkg:package())
 		end
 
 		::continue::
@@ -158,6 +165,8 @@ local function update(buf, reload)
 		end
 	end
 	M.throttled_updates[buf] = nil
+
+	return cache
 end
 
 ---@param buf integer|nil
@@ -188,43 +197,14 @@ function M.await_throttled_update_if_any(buf)
 	return true
 end
 
-function M.hide()
-	state.visible = false
-	for b, _ in pairs(state.buf_cache) do
-		ui.clear(b)
-	end
+---@param uri lsp.DocumentUri
+function M.update(uri)
+	return update(uri, false)
 end
 
-function M.show()
-	state.visible = true
-
-	-- make sure we update the current buffer (first)
-	local buf = util.current_buf()
-	update(buf, false)
-
-	for b, _ in pairs(state.buf_cache) do
-		if b ~= buf then
-			update(b, false)
-		end
-	end
-end
-
-function M.toggle()
-	if state.visible then
-		M.hide()
-	else
-		M.show()
-	end
-end
-
----@param buf integer|nil
-function M.update(buf)
-	update(buf, false)
-end
-
----@param buf integer|nil
-function M.reload(buf)
-	update(buf, true)
+---@param uri lsp.DocumentUri
+function M.reload(uri)
+	return update(uri, true)
 end
 
 return M

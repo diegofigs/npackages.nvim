@@ -101,15 +101,65 @@ function M.display_crate_info(buf, info, diagnostics)
 end
 
 ---@param buf integer
----@param package JsonPackage
-function M.display_loading(buf, package)
+---@param info PackageInfo
+---@param diagnostics NpackagesDiagnostic[]
+function M.display_package_info(buf, info, diagnostics)
+	if not state.visible then
+		return
+	end
+
+	local buf_diagnostics = M.custom_diagnostics[buf] or {}
+	for _, d in ipairs(diagnostics) do
+		local vim_diagnostic = to_vim_diagnostic(d)
+		table.insert(buf_diagnostics, vim_diagnostic)
+	end
+	M.custom_diagnostics[buf] = buf_diagnostics
+
+	local virt_text = {}
+	if info.vers_match then
+		table.insert(virt_text, {
+			string.format(state.cfg.text[info.match_kind], info.vers_match.num),
+			state.cfg.highlight[info.match_kind],
+		})
+	elseif info.match_kind == MatchKind.NOMATCH then
+		table.insert(virt_text, {
+			state.cfg.text.nomatch,
+			state.cfg.highlight.nomatch,
+		})
+	end
+	if info.vers_upgrade then
+		table.insert(virt_text, {
+			string.format(state.cfg.text.upgrade, info.vers_upgrade.num),
+			state.cfg.highlight.upgrade,
+		})
+	end
+
+	if not (info.vers_match or info.vers_upgrade) then
+		table.insert(virt_text, {
+			state.cfg.text.error,
+			state.cfg.highlight.error,
+		})
+	end
+
+	vim.diagnostic.set(CUSTOM_NS, buf, M.custom_diagnostics[buf], { virtual_text = false })
+	vim.api.nvim_buf_clear_namespace(buf, CUSTOM_NS, info.lines.s, info.lines.e)
+	vim.api.nvim_buf_set_extmark(buf, CUSTOM_NS, info.vers_line, -1, {
+		virt_text = virt_text,
+		virt_text_pos = "eol",
+		hl_mode = "combine",
+	})
+end
+
+---@param buf integer
+---@param pkg JsonPackage
+function M.display_loading(buf, pkg)
 	if not state.visible then
 		return
 	end
 
 	local virt_text = { { state.cfg.text.loading, state.cfg.highlight.loading } }
-	vim.api.nvim_buf_clear_namespace(buf, CUSTOM_NS, package.lines.s, package.lines.e)
-	local vers_line = package.vers and package.vers.line or package.lines.s
+	vim.api.nvim_buf_clear_namespace(buf, CUSTOM_NS, pkg.lines.s, pkg.lines.e)
+	local vers_line = pkg.vers and pkg.vers.line or pkg.lines.s
 	vim.api.nvim_buf_set_extmark(buf, CUSTOM_NS, vers_line, -1, {
 		virt_text = virt_text,
 		virt_text_pos = "eol",

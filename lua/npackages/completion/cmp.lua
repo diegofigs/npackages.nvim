@@ -1,4 +1,5 @@
-local completion = require("npackages.completion.common")
+local completion = require("npackages.lsp.completion")
+local util = require("npackages.util")
 
 ---@class Cmp
 ---@field register_source fun(name: string, src: CmpCompletionSource)
@@ -95,12 +96,24 @@ function M:get_trigger_characters(_)
 	return completion.trigger_characters
 end
 
+------Invoke completion (required).
+------  If you want to abort completion, just call the callback without arguments.
+------@param _ CmpSourceBaseApiParams
+------@param callback fun(list: CompletionList|nil)
+---function M:complete(_, callback)
+---	completion.complete(callback)
+---end
+
 ---Invoke completion (required).
 ---  If you want to abort completion, just call the callback without arguments.
 ---@param _ CmpSourceBaseApiParams
----@param callback fun(list: CompletionList|nil)
+---@param callback fun(list: lsp.CompletionResponse|nil)
 function M:complete(_, callback)
-	completion.complete(callback)
+	local line, col = util.cursor_pos()
+	completion.complete({
+		position = { line = line, character = col },
+		textDocument = { uri = vim.uri_from_bufnr(vim.api.nvim_get_current_buf()) },
+	}, callback)
 end
 
 function M.setup()

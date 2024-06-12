@@ -83,7 +83,7 @@ return function()
 			vim.ui.select(create_select_items(versions), {
 				prompt = "Change version of `" .. dependency_name .. "`",
 			}, function(selected_version)
-				if selected_version ~= nil then
+				if selected_version ~= "" and selected_version ~= nil then
 					local change_id = loading.new("| 󰇚 Installing " .. dependency_name .. "@" .. selected_version)
 					job({
 						json = false,

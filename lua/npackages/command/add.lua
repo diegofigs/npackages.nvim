@@ -37,26 +37,28 @@ return function()
 		prompt = "Select Dependency Type",
 		---@param selected_dependency_type string|nil
 	}, function(selected_dependency_type)
-		if selected_dependency_type ~= "Cancel" or selected_dependency_type ~= nil then
+		if selected_dependency_type == "Production" or selected_dependency_type == "Development" then
 			vim.ui.input({
 				prompt = "Enter Dependency Name",
 			}, function(dependency_name)
-				local id = loading.new("| 󰇚 Installing " .. dependency_name .. " dependency")
-				local type = constants.DEPENDENCY_TYPE[selected_dependency_type:lower()]
-				job({
-					json = false,
-					command = get_command(type, dependency_name),
-					on_start = function()
-						loading.start(id)
-					end,
-					on_success = function()
-						loading.stop(id)
-						reload()
-					end,
-					on_error = function()
-						loading.stop(id)
-					end,
-				})
+				if dependency_name ~= "" and dependency_name ~= nil then
+					local id = loading.new("| 󰇚 Installing " .. dependency_name .. " dependency")
+					local type = constants.DEPENDENCY_TYPE[selected_dependency_type:lower()]
+					job({
+						json = false,
+						command = get_command(type, dependency_name),
+						on_start = function()
+							loading.start(id)
+						end,
+						on_success = function()
+							loading.stop(id)
+							reload()
+						end,
+						on_error = function()
+							loading.stop(id)
+						end,
+					})
+				end
 			end)
 		end
 	end)

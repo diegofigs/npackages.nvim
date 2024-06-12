@@ -1,6 +1,6 @@
 local edit = require("npackages.edit")
 local json = require("npackages.json")
-local popup = require("npackages.popup.common")
+local hover = require("npackages.hover.common")
 local state = require("npackages.state")
 local util = require("npackages.util")
 
@@ -15,7 +15,7 @@ local M = {}
 ---@param line integer
 ---@param alt boolean|nil
 local function select_version(ctx, line, alt)
-	local index = popup.item_index(line)
+	local index = hover.item_index(line)
 	local crate = ctx.crate
 	local version = ctx.versions[index]
 	if not version then
@@ -46,14 +46,14 @@ local function select_version(ctx, line, alt)
 	end
 
 	if state.cfg.popup.hide_on_select then
-		popup.hide()
+		hover.hide()
 	end
 end
 
 ---@param versions ApiVersion[]
 ---@param line integer
 local function copy_version(versions, line)
-	local index = popup.item_index(line)
+	local index = hover.item_index(line)
 	local version = versions[index]
 	if not version then
 		return
@@ -66,7 +66,7 @@ end
 ---@param versions ApiVersion[]
 ---@param opts WinOpts
 function M.open(crate, versions, opts)
-	popup.type = popup.Type.VERSIONS
+	hover.type = hover.Type.VERSIONS
 
 	local title = string.format(state.cfg.popup.text.title, crate:package())
 	local vers_width = 0
@@ -112,11 +112,11 @@ function M.open(crate, versions, opts)
 		end
 	end
 
-	local width = popup.win_width(title, vers_width + date_width)
-	local height = popup.win_height(versions)
+	local width = hover.win_width(title, vers_width + date_width)
+	local height = hover.win_height(versions)
 	---@param _win integer
 	---@param buf integer
-	popup.open_win(width, height, title, versions_text, opts, function(_win, buf)
+	hover.open_win(width, height, title, versions_text, opts, function(_win, buf)
 		local ctx = {
 			buf = util.current_buf(),
 			crate = crate,

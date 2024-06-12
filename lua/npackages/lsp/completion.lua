@@ -1,8 +1,10 @@
 local api = require("npackages.api")
 local async = require("npackages.async")
-local core = require("npackages.core")
 local state = require("npackages.state")
+local core = require("npackages.lsp.core")
+local lsp_state = require("npackages.lsp.state")
 local types = require("npackages.types")
+local logger = require("npackages.logger")
 local Span = types.Span
 local util = require("npackages.util")
 
@@ -31,43 +33,26 @@ local M = {
 	},
 }
 
----@class CompletionList
----@field isIncomplete boolean
----@field items CompletionItem[]
-
----@class CompletionItem
----@field label string
----@field kind integer|nil -- CompletionItemKind|nil
----@field detail string|nil
----@field documentation string|nil
----@field deprecated boolean|nil
----@field sortText string|nil
----@field insertText string|nil
----@field cmp CmpCompletionExtension|nil
-
----@class CmpCompletionExtension
----@field kind_text string
----@field kind_hl_group string
-
 -- lsp CompletionItemKind.Value
 local VALUE_KIND = 12
 
----@param crate JsonPackage
+---@param pkg JsonPackage
 ---@param versions ApiVersion[]
----@return CompletionList
-local function complete_versions(crate, versions)
+---@return lsp.CompletionResponse?
+local function complete_versions(pkg, versions)
+	---@type lsp.CompletionItem[]
 	local items = {}
 
 	for i, v in ipairs(versions) do
-		---@type CompletionItem
+		---@type lsp.CompletionItem
 		local r = {
 			label = v.num,
 			kind = VALUE_KIND,
 			sortText = string.format("%04d", i),
 		}
 		if state.cfg.completion.insert_closing_quote then
-			if crate.vers and not crate.vers.quote.e then
-				r.insertText = v.num .. crate.vers.quote.s
+			if pkg.vers and not pkg.vers.quote.e then
+				r.insertText = v.num .. pkg.vers.quote.s
 			end
 		end
 		-- if v.yanked then
@@ -96,7 +81,7 @@ end
 ---@param col Span
 ---@param line integer
 ---@param kind WorkingCrateKind?
----@return CompletionList?
+---@return lsp.CompletionResponse?
 local function complete_packages(prefix, col, line, kind)
 	if #prefix < state.cfg.completion.npackages.min_chars then
 		return
@@ -105,7 +90,7 @@ local function complete_packages(prefix, col, line, kind)
 	---@type string[]
 	local search
 	repeat
-		search = state.search_cache.searches[prefix]
+		search = lsp_state.search_cache.searches[prefix]
 		if not search then
 			---@type ApiPackageSummary[]?, boolean?
 			local searches, cancelled
@@ -119,10 +104,10 @@ local function complete_packages(prefix, col, line, kind)
 				return
 			end
 			if searches then
-				state.search_cache.searches[prefix] = {}
+				lsp_state.search_cache.searches[prefix] = {}
 				for _, result in ipairs(searches) do
-					state.search_cache.results[result.name] = result
-					table.insert(state.search_cache.searches[prefix], result.name)
+					lsp_state.search_cache.results[result.name] = result
+					table.insert(lsp_state.search_cache.searches[prefix], result.name)
 				end
 			end
 		end
@@ -149,7 +134,7 @@ local function complete_packages(prefix, col, line, kind)
 
 	local results = {}
 	for _, r in ipairs(search) do
-		local result = state.search_cache.results[r]
+		local result = lsp_state.search_cache.results[r]
 		table.insert(results, {
 			label = result.name,
 			kind = VALUE_KIND,
@@ -165,86 +150,83 @@ local function complete_packages(prefix, col, line, kind)
 	}
 end
 
----@return CompletionList|nil
-local function complete()
-	local buf = util.current_buf()
+---@param params lsp.CompletionParams
+---@return lsp.CompletionResponse?
+local function complete(params)
+	local buf = vim.uri_to_bufnr(params.textDocument.uri)
 
 	local awaited = core.await_throttled_update_if_any(buf)
 	if awaited and buf ~= util.current_buf() then
 		return
 	end
 
-	local line, col = util.cursor_pos()
-	local packages = util.get_line_packages(buf, Span.new(line, line + 1))
-	local _, crate = next(packages)
+	local line = params.position.line
+	local col = params.position.character
+	local packages = util.get_lsp_packages(params.textDocument.uri, Span.new(line, line + 1))
+	local _, pkg = next(packages)
 
-	if state.cfg.completion.npackages.enabled then
-		local working_crates = state.buf_cache[buf].working_crates
-		for _, wcrate in ipairs(working_crates) do
-			if wcrate and wcrate.col:moved(0, 1):contains(col) and line == wcrate.line then
-				local prefix = wcrate.name:sub(1, col - wcrate.col.s)
-				return complete_packages(prefix, wcrate.col, wcrate.line, wcrate.kind)
-			end
-		end
-	end
+	-- if state.cfg.completion.npackages.enabled then
+	-- 	local working_crates = state.buf_cache[buf].working_crates
+	-- 	for _, wcrate in ipairs(working_crates) do
+	-- 		if wcrate and wcrate.col:moved(0, 1):contains(col) and line == wcrate.line then
+	-- 			local prefix = wcrate.name:sub(1, col - wcrate.col.s)
+	-- 			return complete_packages(prefix, wcrate.col, wcrate.line, wcrate.kind)
+	-- 		end
+	-- 	end
+	-- end
 
-	if not crate then
+	if not pkg then
 		return
 	end
 
 	if state.cfg.completion.npackages.enabled then
 		if
-			crate.pkg and crate.pkg.line == line and crate.pkg.col:moved(0, 1):contains(col)
-			or not crate.pkg
-				and crate.explicit_name
-				and crate.lines.s == line
-				and crate.explicit_name_col:moved(0, 1):contains(col)
+			pkg.pkg and pkg.pkg.line == line and pkg.pkg.col:moved(0, 1):contains(col)
+			or not pkg.pkg
+				and pkg.explicit_name
+				and pkg.lines.s == line
+				and pkg.explicit_name_col:moved(0, 1):contains(col)
 		then
-			local prefix = crate.pkg and crate.pkg.text:sub(1, col - crate.pkg.col.s)
-				or crate.explicit_name:sub(1, col - crate.explicit_name_col.s)
-			local name_col = crate.pkg and crate.pkg.col or crate.explicit_name_col
+			local prefix = pkg.pkg and pkg.pkg.text:sub(1, col - pkg.pkg.col.s)
+				or pkg.explicit_name:sub(1, col - pkg.explicit_name_col.s)
+			local name_col = pkg.pkg and pkg.pkg.col or pkg.explicit_name_col
 			return complete_packages(prefix, name_col, line)
 		end
 	end
 
-	local api_package = state.api_cache[crate:package()]
+	local api_package = lsp_state.api_cache[pkg:package()]
 
-	if not api_package and api.is_fetching_crate(crate:package()) then
-		local _, cancelled = api.await_crate(crate:package())
+	if not api_package and api.is_fetching_crate(pkg:package()) then
+		local _, cancelled = api.await_crate(pkg:package())
 
 		if cancelled or buf ~= util.current_buf() then
 			return
 		end
 
 		line, col = util.cursor_pos()
-		packages = util.get_line_packages(buf, Span.new(line, line + 1))
-		_, crate = next(packages)
-		if not crate then
+		packages = util.get_lsp_packages(params.textDocument.uri, Span.new(line, line + 1))
+		_, pkg = next(packages)
+		if not pkg then
 			return
 		end
 
-		api_package = state.api_cache[crate:package()]
+		api_package = lsp_state.api_cache[pkg:package()]
 	end
 
 	if not api_package then
 		return
 	end
 
-	if crate.vers and crate.vers.line == line and crate.vers.col:moved(0, 1):contains(col) then
-		return complete_versions(crate, api_package.versions)
-		-- elseif crate.feat and crate.feat.line == line and crate.feat.col:moved(0, 1):contains(col) then
-		-- 	for _, f in ipairs(crate.feat.items) do
-		-- 		if f.col:moved(0, 1):contains(col - crate.feat.col.s) then
-		-- 			return complete_features(crate, f, api_crate.versions)
-		-- 		end
-		-- 	end
+	if pkg.vers and pkg.vers.line == line and pkg.vers.col:moved(0, 1):contains(col) then
+		return complete_versions(pkg, api_package.versions)
 	end
 end
 
----@param callback fun(list: CompletionList|nil)
-function M.complete(callback)
+---@param params lsp.CompletionParams
+---@param callback fun(response: lsp.CompletionResponse?)
+function M.complete(params, callback)
 	vim.schedule(async.wrap(function()
-		callback(complete())
+		callback(complete(params))
 	end))
 end
 

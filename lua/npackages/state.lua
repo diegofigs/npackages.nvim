@@ -25,7 +25,6 @@ local State = {
 ---@field packages table<string,JsonPackage>
 ---@field info table<string,PackageInfo>
 ---@field diagnostics NpackagesDiagnostic[]
----@field working_crates WorkingCrate[]
 
 ---@class SearchCache
 ---@field searches table<string, string[]>

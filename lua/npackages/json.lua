@@ -426,21 +426,18 @@ function M.trim_comments(line)
 end
 
 ---comment
----@param buf integer
+---@param lines string[]
 ---@return JsonSection[]
 ---@return JsonPackage[]
----@return WorkingCrate[]
-function M.parse_packages(buf)
-	---@type string[]
-	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-
+-- @return WorkingCrate[]
+function M.parse_packages(lines)
 	local sections = {}
 	local packages = {}
 
 	---@type JsonSection?
 	local dep_section
-	---@type WorkingCrate[]
-	local working_crates = {}
+	------@type WorkingCrate[]
+	---local working_crates = {}
 
 	for i, line in ipairs(lines) do
 		-- line = M.trim_comments(line)
@@ -473,17 +470,17 @@ function M.parse_packages(buf)
 			if crate then
 				crate.section = dep_section
 				table.insert(packages, Package.new(crate))
-			else
-				local name = line:match([[^%s*%"([^%s]+)%"]])
-				local name_s, name_e = line:find([[^%s*%"([^%s]+)%"]])
-				if name_s and name and name_e then
-					table.insert(working_crates, {
-						name = name,
-						line = line_nr,
-						col = Span.new(name_s - 1, name_e - 1),
-						kind = types.WorkingCrateKind.INLINE,
-					})
-				end
+				-- else
+				-- 	local name = line:match([[^%s*%"([^%s]+)%"]])
+				-- 	local name_s, name_e = line:find([[^%s*%"([^%s]+)%"]])
+				-- 	if name_s and name and name_e then
+				-- 		table.insert(working_crates, {
+				-- 			name = name,
+				-- 			line = line_nr,
+				-- 			col = Span.new(name_s - 1, name_e - 1),
+				-- 			kind = types.WorkingCrateKind.INLINE,
+				-- 		})
+				-- 	end
 			end
 		end
 		--- 3. section closure
@@ -494,7 +491,7 @@ function M.parse_packages(buf)
 		end
 	end
 
-	return sections, packages, working_crates
+	return sections, packages
 end
 
 return M

@@ -1,5 +1,6 @@
 local semver = require("npackages.semver")
 local state = require("npackages.state")
+local lsp_state = require("npackages.lsp.state")
 local types = require("npackages.types")
 local Span = types.Span
 
@@ -42,10 +43,22 @@ function M.get_buf_info(buf)
 	return cache and cache.info
 end
 
+---@param uri lsp.DocumentUri
+function M.get_lsp_info(uri)
+	local cache = lsp_state.doc_cache[uri]
+	return cache and cache.info
+end
+
 ---@param buf integer
 ---@return NpackagesDiagnostic[]|nil
 function M.get_buf_diagnostics(buf)
 	local cache = state.buf_cache[buf]
+	return cache and cache.diagnostics
+end
+
+---@param uri lsp.DocumentUri
+function M.get_lsp_diagnostics(uri)
+	local cache = lsp_state.doc_cache[uri]
 	return cache and cache.diagnostics
 end
 
@@ -57,11 +70,40 @@ function M.get_package_info(buf, key)
 	return info and info[key]
 end
 
+---@param uri lsp.DocumentUri
+---@param key string
+---@return PackageInfo|nil
+function M.get_lsp_package_info(uri, key)
+	local info = M.get_lsp_info(uri)
+	return info and info[key]
+end
+
 ---@param buf integer
 ---@param lines Span
 ---@return table<string,JsonPackage>
 function M.get_line_packages(buf, lines)
 	local cache = state.buf_cache[buf]
+	local packages = cache and cache.packages
+	if not packages then
+		return {}
+	end
+
+	---@type table<string,JsonPackage>
+	local line_packages = {}
+	for k, c in pairs(packages) do
+		if lines:contains(c.lines.s) or c.lines:contains(lines.s) then
+			line_packages[k] = c
+		end
+	end
+
+	return line_packages
+end
+
+---@param uri lsp.DocumentUri
+---@param lines Span
+---@return table<string,JsonPackage>
+function M.get_lsp_packages(uri, lines)
+	local cache = lsp_state.doc_cache[uri]
 	local packages = cache and cache.packages
 	if not packages then
 		return {}
@@ -127,6 +169,14 @@ function M.binary_installed(name)
 	end
 
 	return vim.fn.executable(name) == 1
+end
+
+---comment
+---@param severity integer
+---@param s string
+---@param ... any
+function M.notify(severity, s, ...)
+	vim.notify(s:format(...), severity, { title = state.cfg.notification_title })
 end
 
 ---@param name string

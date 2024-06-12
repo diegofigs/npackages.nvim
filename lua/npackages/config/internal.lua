@@ -1606,7 +1606,7 @@ entry(schema_lsp, {
 entry(schema_lsp, {
 	name = "name",
 	type = STRING_TYPE,
-	default = "npackages.nvim",
+	default = "npackages_ls",
 	description = [[
         The lsp server name.
     ]],

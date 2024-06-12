@@ -1,14 +1,14 @@
-local popup = require("npackages.popup.common")
-local popup_package = require("npackages.popup.package")
-local popup_versions = require("npackages.popup.versions")
+local hover = require("npackages.hover.common")
+local hover_package = require("npackages.hover.package")
+local hover_versions = require("npackages.hover.versions")
 local json = require("npackages.json")
-local state = require("npackages.state")
+local state = require("npackages.lsp.state")
 local JsonPackageSyntax = json.JsonPackageSyntax
 local types = require("npackages.types")
 local Span = types.Span
 local util = require("npackages.util")
 
-local M = {}
+local Hover = {}
 
 ---@class LinePackageInfo
 ---@field pref PopupType
@@ -21,7 +21,7 @@ local function line_crate_info()
 	local buf = util.current_buf()
 	local line, col = util.cursor_pos()
 
-	local packages = util.get_line_packages(buf, Span.new(line, line + 1))
+	local packages = util.get_lsp_packages(vim.uri_from_bufnr(buf), Span.new(line, line + 1))
 	local _, crate = next(packages)
 	if not crate then
 		return
@@ -40,11 +40,11 @@ local function line_crate_info()
 		crate = crate,
 		versions = api_package.versions,
 		newest = newest,
-		pref = popup.Type.JSON,
+		pref = hover.Type.JSON,
 	}
 
 	local function versions_info()
-		info.pref = popup.Type.VERSIONS
+		info.pref = hover.Type.VERSIONS
 	end
 
 	if crate.syntax == JsonPackageSyntax.PLAIN then
@@ -71,13 +71,13 @@ local function line_crate_info()
 end
 
 ---@return boolean
-function M.available()
+function Hover.available()
 	return line_crate_info() ~= nil
 end
 
-function M.show()
-	if popup.win and vim.api.nvim_win_is_valid(popup.win) then
-		popup.focus()
+function Hover.show()
+	if hover.win and vim.api.nvim_win_is_valid(hover.win) then
+		hover.focus()
 		return
 	end
 
@@ -86,33 +86,33 @@ function M.show()
 		return
 	end
 
-	if info.pref == popup.Type.JSON then
+	if info.pref == hover.Type.JSON then
 		local crate = state.api_cache[info.crate:package()]
 		if crate then
-			popup_package.open(crate, {})
+			hover_package.open(crate, {})
 		end
-	elseif info.pref == popup.Type.VERSIONS then
-		popup_versions.open(info.crate, info.versions, {})
+	elseif info.pref == hover.Type.VERSIONS then
+		hover_versions.open(info.crate, info.versions, {})
 		-- elseif info.pref == popup.Type.DEPENDENCIES then
 		-- 	popup_deps.open(info.crate:package(), info.newest, {})
 	end
 end
 
-function M.focus()
-	popup.focus()
+function Hover.focus()
+	hover.focus()
 end
 
-function M.hide()
-	popup.hide()
+function Hover.hide()
+	hover.hide()
 end
 
-function M.show_package()
-	if popup.win and vim.api.nvim_win_is_valid(popup.win) then
-		if popup.type == popup.Type.JSON then
-			popup.focus()
+function Hover.show_package()
+	if hover.win and vim.api.nvim_win_is_valid(hover.win) then
+		if hover.type == hover.Type.JSON then
+			hover.focus()
 			return
 		else
-			popup.hide()
+			hover.hide()
 		end
 	end
 
@@ -123,17 +123,17 @@ function M.show_package()
 
 	local crate = state.api_cache[info.crate:package()]
 	if crate then
-		popup_package.open(crate, {})
+		hover_package.open(crate, {})
 	end
 end
 
-function M.show_versions()
-	if popup.win and vim.api.nvim_win_is_valid(popup.win) then
-		if popup.type == popup.Type.VERSIONS then
-			popup.focus()
+function Hover.show_versions()
+	if hover.win and vim.api.nvim_win_is_valid(hover.win) then
+		if hover.type == hover.Type.VERSIONS then
+			hover.focus()
 			return
 		else
-			popup.hide()
+			hover.hide()
 		end
 	end
 
@@ -142,16 +142,16 @@ function M.show_versions()
 		return
 	end
 
-	popup_versions.open(info.crate, info.versions, {})
+	hover_versions.open(info.crate, info.versions, {})
 end
 
-function M.show_dependencies()
-	if popup.win and vim.api.nvim_win_is_valid(popup.win) then
-		if popup.type == popup.Type.DEPENDENCIES then
-			popup.focus()
+function Hover.show_dependencies()
+	if hover.win and vim.api.nvim_win_is_valid(hover.win) then
+		if hover.type == hover.Type.DEPENDENCIES then
+			hover.focus()
 			return
 		else
-			popup.hide()
+			hover.hide()
 		end
 	end
 
@@ -163,4 +163,4 @@ function M.show_dependencies()
 	-- popup_deps.open(info.crate:package(), info.newest, {})
 end
 
-return M
+return Hover
