@@ -3,6 +3,7 @@ local state = require("npackages.lsp.state")
 local types = require("npackages.types")
 local util = require("npackages.util")
 local Span = types.Span
+local NpackagesDiagnosticKind = types.NpackagesDiagnosticKind
 
 local M = {}
 
@@ -67,7 +68,7 @@ end
 ---@param params lsp.CodeActionParams
 ---@param alt boolean|nil
 function M.update_all_packages(params, alt)
-	local buf = util.current_buf()
+	local buf = vim.uri_to_bufnr(params.textDocument.uri)
 	local cache = state.doc_cache[params.textDocument.uri]
 	if cache.packages and cache.info then
 		edit.update_packages(buf, cache.packages, cache.info, alt)
@@ -117,8 +118,35 @@ function M.open_npmjs(params)
 	end
 end
 
+---@param params lsp.CodeActionParams
+---@return fun()
+local function remove_diagnostic_range_action(params)
+	local buf = vim.uri_to_bufnr(params.textDocument.uri)
+	local range = params.range
+	return function()
+		vim.api.nvim_buf_set_text(
+			buf,
+			range.start.line,
+			range.start.character,
+			range["end"].line + 1,
+			range["end"].character,
+			{}
+		)
+	end
+end
+
+---@param params lsp.CodeActionParams
+local function remove_lines_action(params)
+	local buf = vim.uri_to_bufnr(params.textDocument.uri)
+	local range = params.range
+	return function()
+		vim.api.nvim_buf_set_lines(buf, range.start.line, range["end"].line + 1, false, {})
+	end
+end
+
 local function to_code_action(action)
 	local title = util.format_title(action.name)
+	---@type lsp.CodeAction
 	return {
 		title = title,
 		---@type lsp.CodeActionKind
@@ -136,65 +164,68 @@ end
 ---@return lsp.CodeAction[]
 function M.get(params)
 	local doc = state.documents[params.textDocument.uri]
-	---@type lsp.CodeAction[]
 	local actions = {}
 
 	local range = params.range
-	local buf = vim.uri_to_bufnr(doc.uri)
 	local line = range.start.line
 	local col = range.start.character
 	local packages = util.get_lsp_packages(doc.uri, Span.pos(line))
 	local key, pkg = next(packages)
 
-	-- local diagnostics = util.get_lsp_diagnostics(doc.uri) or {}
-	-- for _, d in ipairs(diagnostics) do
-	-- 	if not d:contains(line, col) then
-	-- 		goto continue
-	-- 	end
-	--
-	-- 	if d.kind == NpackagesDiagnosticKind.SECTION_DUP then
-	-- 		table.insert(actions, {
-	-- 			name = "remove_duplicate_section",
-	-- 			action = remove_diagnostic_range_action(buf, d),
-	-- 		})
-	-- 	elseif d.kind == NpackagesDiagnosticKind.SECTION_DUP_ORIG then
-	-- 		table.insert(actions, {
-	-- 			name = "remove_original_section",
-	-- 			action = remove_lines_action(buf, d.data["lines"]),
-	-- 		})
-	-- 	elseif d.kind == NpackagesDiagnosticKind.SECTION_INVALID then
-	-- 		table.insert(actions, {
-	-- 			name = "remove_invalid_dependency_section",
-	-- 			action = remove_diagnostic_range_action(buf, d),
-	-- 		})
-	-- 	elseif d.kind == NpackagesDiagnosticKind.CRATE_DUP then
-	-- 		table.insert(
-	-- 			actions,
-	-- 			to_code_action({
-	-- 				name = "remove_duplicate_package",
-	-- 				action = remove_diagnostic_range_action(buf, d),
-	-- 			})
-	-- 		)
-	-- 	elseif d.kind == NpackagesDiagnosticKind.CRATE_DUP_ORIG then
-	-- 		table.insert(
-	-- 			actions,
-	-- 			to_code_action({
-	-- 				name = "remove_original_package",
-	-- 				action = remove_diagnostic_range_action(buf, d),
-	-- 			})
-	-- 		)
-	-- 	elseif d.kind == NpackagesDiagnosticKind.CRATE_NAME_CASE then
-	-- 		table.insert(
-	-- 			actions,
-	-- 			to_code_action({
-	-- 				name = "rename_package",
-	-- 				action = rename_package_action(buf, d.data["crate"], d.data["crate_name"]),
-	-- 			})
-	-- 		)
-	-- 	end
-	--
-	-- 	::continue::
-	-- end
+	local diagnostics = util.get_lsp_diagnostics(doc.uri) or {}
+	for _, d in ipairs(diagnostics) do
+		if not d:contains(line, col) then
+			goto continue
+		end
+
+		if d.kind == NpackagesDiagnosticKind.SECTION_DUP then
+			table.insert(
+				actions,
+				to_code_action({
+					name = "remove_duplicate_section",
+					action = remove_diagnostic_range_action(params),
+				})
+			)
+		end
+		if d.kind == NpackagesDiagnosticKind.SECTION_DUP_ORIG then
+			table.insert(
+				actions,
+				to_code_action({
+					name = "remove_original_section",
+					action = remove_lines_action(params),
+				})
+			)
+		end
+		if d.kind == NpackagesDiagnosticKind.SECTION_INVALID then
+			table.insert(
+				actions,
+				to_code_action({
+					name = "remove_invalid_dependency_section",
+					action = remove_diagnostic_range_action(params),
+				})
+			)
+		end
+		if d.kind == NpackagesDiagnosticKind.CRATE_DUP then
+			table.insert(
+				actions,
+				to_code_action({
+					name = "remove_duplicate_package",
+					action = remove_diagnostic_range_action(params),
+				})
+			)
+		end
+		if d.kind == NpackagesDiagnosticKind.CRATE_DUP_ORIG then
+			table.insert(
+				actions,
+				to_code_action({
+					name = "remove_original_package",
+					action = remove_diagnostic_range_action(params),
+				})
+			)
+		end
+
+		::continue::
+	end
 
 	if pkg then
 		local info = util.get_lsp_package_info(doc.uri, key)

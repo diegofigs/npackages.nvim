@@ -51,7 +51,6 @@ function M.reload()
 	core.reload(vim.uri_from_bufnr(buf))
 end
 
----@type {[1]: string, [2]: function}[]
 local sub_commands = {
 	{ "hide", M.hide },
 	{ "show", M.show },
@@ -109,7 +108,6 @@ local function exec(cmd)
 	for _, s in ipairs(sub_commands) do
 		if s[1] == cmd.args then
 			local fn = s[2]
-			---@type any
 			local ret = fn()
 			if ret ~= nil then
 				print(vim.inspect(ret))

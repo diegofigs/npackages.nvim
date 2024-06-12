@@ -12,6 +12,8 @@ local State = {
 		searches = {},
 		results = {},
 	},
+	---@type table<lsp.DocumentUri, string>
+	wdt_cache = {},
 }
 
 ---@class DocCache

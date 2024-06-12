@@ -15,7 +15,6 @@ end
 
 ---@return integer, integer
 function M.cursor_pos()
-	---@type integer[]
 	local cursor = vim.api.nvim_win_get_cursor(0)
 	return cursor[1] - 1, cursor[2]
 end
@@ -24,9 +23,7 @@ end
 function M.selected_lines()
 	local info = vim.api.nvim_get_mode()
 	if info.mode:match("[vV]") then
-		---@type integer
 		local s = vim.fn.getpos("v")[2]
-		---@type integer
 		local e = vim.fn.getcurpos()[2]
 		return Span.new(s, e)
 	else
@@ -36,24 +33,10 @@ function M.selected_lines()
 	end
 end
 
----@param buf integer
----@return table<string, PackageInfo>|nil
-function M.get_buf_info(buf)
-	local cache = state.buf_cache[buf]
-	return cache and cache.info
-end
-
 ---@param uri lsp.DocumentUri
 function M.get_lsp_info(uri)
 	local cache = lsp_state.doc_cache[uri]
 	return cache and cache.info
-end
-
----@param buf integer
----@return NpackagesDiagnostic[]|nil
-function M.get_buf_diagnostics(buf)
-	local cache = state.buf_cache[buf]
-	return cache and cache.diagnostics
 end
 
 ---@param uri lsp.DocumentUri
@@ -62,41 +45,12 @@ function M.get_lsp_diagnostics(uri)
 	return cache and cache.diagnostics
 end
 
----@param buf integer
----@param key string
----@return PackageInfo|nil
-function M.get_package_info(buf, key)
-	local info = M.get_buf_info(buf)
-	return info and info[key]
-end
-
 ---@param uri lsp.DocumentUri
 ---@param key string
 ---@return PackageInfo|nil
 function M.get_lsp_package_info(uri, key)
 	local info = M.get_lsp_info(uri)
 	return info and info[key]
-end
-
----@param buf integer
----@param lines Span
----@return table<string,JsonPackage>
-function M.get_line_packages(buf, lines)
-	local cache = state.buf_cache[buf]
-	local packages = cache and cache.packages
-	if not packages then
-		return {}
-	end
-
-	---@type table<string,JsonPackage>
-	local line_packages = {}
-	for k, c in pairs(packages) do
-		if lines:contains(c.lines.s) or c.lines:contains(lines.s) then
-			line_packages[k] = c
-		end
-	end
-
-	return line_packages
 end
 
 ---@param uri lsp.DocumentUri

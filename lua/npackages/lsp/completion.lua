@@ -4,7 +4,6 @@ local state = require("npackages.state")
 local core = require("npackages.lsp.core")
 local lsp_state = require("npackages.lsp.state")
 local types = require("npackages.types")
-local logger = require("npackages.logger")
 local Span = types.Span
 local util = require("npackages.util")
 
@@ -38,13 +37,12 @@ local VALUE_KIND = 12
 
 ---@param pkg JsonPackage
 ---@param versions ApiVersion[]
----@return lsp.CompletionResponse?
+---@return lsp.CompletionList?
 local function complete_versions(pkg, versions)
-	---@type lsp.CompletionItem[]
 	local items = {}
 
 	for i, v in ipairs(versions) do
-		---@type lsp.CompletionItem
+		---@class lsp.CompletionItem
 		local r = {
 			label = v.num,
 			kind = VALUE_KIND,
@@ -81,7 +79,7 @@ end
 ---@param col Span
 ---@param line integer
 ---@param kind WorkingCrateKind?
----@return lsp.CompletionResponse?
+---@return lsp.CompletionList?
 local function complete_packages(prefix, col, line, kind)
 	if #prefix < state.cfg.completion.npackages.min_chars then
 		return
@@ -151,7 +149,7 @@ local function complete_packages(prefix, col, line, kind)
 end
 
 ---@param params lsp.CompletionParams
----@return lsp.CompletionResponse?
+---@return lsp.CompletionList?
 local function complete(params)
 	local buf = vim.uri_to_bufnr(params.textDocument.uri)
 
@@ -223,7 +221,7 @@ local function complete(params)
 end
 
 ---@param params lsp.CompletionParams
----@param callback fun(response: lsp.CompletionResponse?)
+---@param callback fun(response: lsp.CompletionList?)
 function M.complete(params, callback)
 	vim.schedule(async.wrap(function()
 		callback(complete(params))

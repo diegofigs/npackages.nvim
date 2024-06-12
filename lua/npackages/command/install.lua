@@ -1,4 +1,4 @@
-local constants = require("npackages.constants")
+local npm = require("npackages.npm")
 local job = require("npackages.utils.job")
 local loading = require("npackages.ui.loading")
 local state = require("npackages.state")
@@ -8,13 +8,13 @@ local util = require("npackages.util")
 ---@return string
 local function get_command()
 	local package_manager = state.package_manager[util.current_buf()]
-	if package_manager == constants.PACKAGE_MANAGERS.yarn then
+	if package_manager == npm.PACKAGE_MANAGERS.yarn then
 		if state.has_old_yarn then
 			return "yarn install"
 		end
 
 		return "yarn install"
-	elseif package_manager == constants.PACKAGE_MANAGERS.pnpm then
+	elseif package_manager == npm.PACKAGE_MANAGERS.pnpm then
 		return "pnpm install"
 	else
 		return "npm install"

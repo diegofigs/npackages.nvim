@@ -45,7 +45,6 @@ function M.throttle(f, timeout)
 			timer:stop()
 		end
 
-		---@type integer
 		local rem = timeout - (vim.loop.now() - last_call)
 		-- Schedule a tail call
 		if rem > 0 then
@@ -69,7 +68,6 @@ function M.throttle(f, timeout)
 
 						-- If it was reset in the throttle call, it could be a shorter
 						-- interval between calls to f
-						---@type integer
 						last_call = vim.loop.now()
 
 						f(unpack(args))
@@ -77,7 +75,6 @@ function M.throttle(f, timeout)
 				)
 			end
 		else
-			---@type integer
 			last_call = vim.loop.now()
 			f(...)
 		end

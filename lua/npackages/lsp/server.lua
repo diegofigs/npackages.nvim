@@ -3,6 +3,7 @@ local completion = require("npackages.lsp.completion")
 local textDocument = require("npackages.lsp.textDocument")
 local logger = require("npackages.logger")
 local state = require("npackages.state")
+local lsp_state = require("npackages.lsp.state")
 local hover = require("npackages.hover")
 
 ---@type lsp.ServerCapabilities
@@ -28,33 +29,39 @@ local handlers = {
 	---@param params lsp.InitializeParams
 	---@param callback fun(err: nil, result: lsp.InitializeResult)
 	[vim.lsp.protocol.Methods.initialize] = function(method, params, callback)
+		lsp_state.wdt_cache[params.rootUri] = params.workDoneToken
 		callback(nil, {
 			capabilities = server_capabilities,
+			serverInfo = {
+				name = "npackages_ls",
+			},
 		})
 	end,
+
 	---@param method string
 	---@param params lsp.CodeActionParams
 	---@param callback fun(err: nil, actions: lsp.CodeAction[])
 	[vim.lsp.protocol.Methods.textDocument_codeAction] = function(method, params, callback)
 		callback(nil, codeAction.get(params))
 	end,
+
 	---@param method string
 	---@param params lsp.CompletionParams
-	---@param callback fun(err: nil, items: lsp.CompletionResponse|nil)
+	---@param callback fun(err: nil, items: lsp.CompletionList|nil)
 	[vim.lsp.protocol.Methods.textDocument_completion] = function(method, params, callback)
 		completion.complete(params, function(response)
 			callback(nil, response)
 		end)
 	end,
+
 	---@param method string
 	---@param params lsp.HoverParams
 	---@param callback fun(err: nil, result: lsp.Hover)
 	[vim.lsp.protocol.Methods.textDocument_hover] = function(method, params, callback)
 		hover.show()
-		-- textDocument.hover(params, function(result)
-		-- 	callback(nil, result)
-		-- end)
+		-- callback(nil, textDocument.hover(params))
 	end,
+
 	---@param method string
 	---@param params lsp.DocumentDiagnosticParams
 	---@param callback fun(err: nil, result: lsp.DocumentDiagnosticReport)
@@ -63,20 +70,23 @@ local handlers = {
 			callback(nil, result)
 		end)
 	end,
-	[vim.lsp.protocol.Methods.shutdown] = function(_, _, callback)
-		callback(nil, nil)
-	end,
+
 	---@param method string
 	---@param params lsp.WorkspaceDiagnosticParams
 	---@param callback fun(err: nil, result: lsp.WorkspaceDocumentDiagnosticReport)
 	[vim.lsp.protocol.Methods.workspace_diagnostic] = function(method, params, callback)
 		logger.info(params)
 	end,
+
 	---@param method string
 	---@param params lsp.WorkspaceDiagnosticParams
 	---@param callback fun(err: nil, result: lsp.WorkspaceDocumentDiagnosticReport)
 	[vim.lsp.protocol.Methods.workspace_diagnostic_refresh] = function(method, params, callback)
 		logger.info(params)
+	end,
+
+	[vim.lsp.protocol.Methods.shutdown] = function(_, _, callback)
+		callback(nil, nil)
 	end,
 }
 
@@ -87,17 +97,16 @@ local notify_handlers = {
 }
 
 ---@class ServerOpts
----@field on_request fun(method: string, params: any)|nil
----@field on_notify fun(method: string, params: any)|nil
+---@field on_request fun(method: string, params: any)?
+---@field on_notify fun(method: string, params: any)?
 
 ---@param opts ServerOpts|nil
----@return function
+---@return fun(_: vim.lsp.rpc.Dispatchers): vim.lsp.rpc.PublicClient
 local function server(opts)
 	opts = opts or {}
 	local on_request = opts.on_request or function(_, _) end
 	local on_notify = opts.on_notify or function(_, _) end
 
-	---@param dispatchers vim.lsp.rpc.Dispatchers
 	return function(dispatchers)
 		local closing = false
 		local srv = {}

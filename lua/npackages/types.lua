@@ -37,15 +37,9 @@ M.MatchKind = {
 
 ---@class ApiVersion
 ---@field num string
--- ---@field features ApiFeatures
--- ---@field yanked boolean
 ---@field parsed SemVer
 ---@field created DateTime
 ---@field deps ApiDependency[]|nil
-
--- ---@class ApiFeature
--- ---@field name string
--- ---@field members string[]
 
 ---@class ApiDependency
 ---@field name string
@@ -133,47 +127,6 @@ M.NpackagesDiagnosticKind = {
 	CRATE_DUP_ORIG = "crate_dup_orig",
 	FEAT_DUP_ORIG = "feat_dup_orig",
 }
-
--- ---@class ApiFeatures
--- ---@field list ApiFeature[]
--- ---@field map table<string,ApiFeature>
--- local ApiFeatures = {}
--- M.ApiFeatures = ApiFeatures
---
--- ---@param list ApiFeature[]
--- ---@return ApiFeatures
--- function ApiFeatures.new(list)
--- 	---@type table<string,ApiFeature>
--- 	local map = {}
--- 	for _, f in ipairs(list) do
--- 		map[f.name] = f
--- 	end
--- 	return setmetatable({ list = list, map = map }, { __index = ApiFeatures })
--- end
---
--- ---@param name string
--- ---@return ApiFeature|nil
--- function ApiFeatures:get_feat(name)
--- 	return self.map[name]
--- end
---
--- function ApiFeatures:sort()
--- 	table.sort(self.list, function(a, b)
--- 		if a.name == "default" then
--- 			return true
--- 		elseif b.name == "default" then
--- 			return false
--- 		else
--- 			return a.name < b.name
--- 		end
--- 	end)
--- end
---
--- ---@param feat ApiFeature
--- function ApiFeatures:insert(feat)
--- 	table.insert(self.list, feat)
--- 	self.map[feat.name] = feat
--- end
 
 ---@class SemVer
 ---@field major integer|nil

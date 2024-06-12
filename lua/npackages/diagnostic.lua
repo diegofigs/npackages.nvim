@@ -21,7 +21,6 @@ local SectionScope = {
 local PackageScope = {
 	VERS = 1,
 	DEF = 2,
-	FEAT = 3,
 }
 
 ---@param section JsonSection
@@ -54,12 +53,12 @@ end
 ---@param scope PackageScope|nil
 ---@param data table<string,any>|nil
 ---@return NpackagesDiagnostic
-local function crate_diagnostic(crate, kind, severity, scope, data)
+local function package_diagnostic(crate, kind, severity, scope, data)
 	local d = NpackagesDiagnostic.new({
 		lnum = crate.lines.s,
 		end_lnum = crate.lines.e - 1,
-		col = 0,
-		end_col = 999,
+		col = crate.explicit_name_col.s,
+		end_col = crate.explicit_name_col.e,
 		severity = severity,
 		kind = kind,
 		data = data,
@@ -76,20 +75,20 @@ local function crate_diagnostic(crate, kind, severity, scope, data)
 			d.col = crate.vers.col.s
 			d.end_col = crate.vers.col.e
 		end
-	elseif scope == PackageScope.DEF then
-		if crate.def then
-			d.lnum = crate.def.line
-			d.end_lnum = crate.def.line
-			d.col = crate.def.col.s
-			d.end_col = crate.def.col.e
-		end
-	elseif scope == PackageScope.FEAT then
-		if crate.feat then
-			d.lnum = crate.feat.line
-			d.end_lnum = crate.feat.line
-			d.col = crate.feat.col.s
-			d.end_col = crate.feat.col.e
-		end
+		-- elseif scope == PackageScope.DEF then
+		-- 	if crate.def then
+		-- 		d.lnum = crate.def.line
+		-- 		d.end_lnum = crate.def.line
+		-- 		d.col = crate.def.col.s
+		-- 		d.end_col = crate.def.col.e
+		-- 	end
+		-- elseif scope == PackageScope.FEAT then
+		-- 	if crate.feat then
+		-- 		d.lnum = crate.feat.line
+		-- 		d.end_lnum = crate.feat.line
+		-- 		d.col = crate.feat.col.s
+		-- 		d.end_col = crate.feat.col.e
+		-- 	end
 	end
 
 	return d
@@ -136,13 +135,7 @@ function M.process_packages(sections, packages)
 		elseif s_cache[key] then
 			table.insert(
 				diagnostics,
-				section_diagnostic(
-					s_cache[key],
-					NpackagesDiagnosticKind.SECTION_DUP_ORIG,
-					vim.diagnostic.severity.HINT,
-					SectionScope.HEADER,
-					{ lines = s_cache[key].lines }
-				)
+				section_diagnostic(s_cache[key], NpackagesDiagnosticKind.SECTION_DUP, vim.diagnostic.severity.ERROR)
 			)
 			table.insert(
 				diagnostics,
@@ -162,28 +155,14 @@ function M.process_packages(sections, packages)
 		if cache[key] then
 			table.insert(
 				diagnostics,
-				crate_diagnostic(cache[key], NpackagesDiagnosticKind.CRATE_DUP_ORIG, vim.diagnostic.severity.HINT)
+				package_diagnostic(cache[key], NpackagesDiagnosticKind.CRATE_DUP, vim.diagnostic.severity.ERROR)
 			)
 			table.insert(
 				diagnostics,
-				crate_diagnostic(c, NpackagesDiagnosticKind.CRATE_DUP, vim.diagnostic.severity.ERROR)
+				package_diagnostic(c, NpackagesDiagnosticKind.CRATE_DUP, vim.diagnostic.severity.ERROR)
 			)
 		else
 			cache[key] = c
-
-			if c.def then
-				if c.def.text ~= "false" and c.def.text ~= "true" then
-					table.insert(
-						diagnostics,
-						crate_diagnostic(
-							c,
-							NpackagesDiagnosticKind.DEF_INVALID,
-							vim.diagnostic.severity.ERROR,
-							PackageScope.DEF
-						)
-					)
-				end
-			end
 		end
 
 		::continue::
@@ -214,7 +193,7 @@ function M.process_api_package(package, api_package)
 			if api_package.name ~= package:package() then
 				table.insert(
 					diagnostics,
-					crate_diagnostic(
+					package_diagnostic(
 						package,
 						NpackagesDiagnosticKind.CRATE_NAME_CASE,
 						vim.diagnostic.severity.ERROR,
@@ -249,7 +228,7 @@ function M.process_api_package(package, api_package)
 				if state.cfg.enable_update_available_warning then
 					table.insert(
 						diagnostics,
-						crate_diagnostic(
+						package_diagnostic(
 							package,
 							NpackagesDiagnosticKind.VERS_UPGRADE,
 							vim.diagnostic.severity.WARN,
@@ -266,7 +245,7 @@ function M.process_api_package(package, api_package)
 					info.match_kind = MatchKind.PRERELEASE
 					table.insert(
 						diagnostics,
-						crate_diagnostic(
+						package_diagnostic(
 							package,
 							NpackagesDiagnosticKind.VERS_PRE,
 							vim.diagnostic.severity.ERROR,
@@ -278,7 +257,7 @@ function M.process_api_package(package, api_package)
 					info.match_kind = MatchKind.YANKED
 					table.insert(
 						diagnostics,
-						crate_diagnostic(
+						package_diagnostic(
 							package,
 							NpackagesDiagnosticKind.VERS_YANKED,
 							vim.diagnostic.severity.ERROR,
@@ -293,14 +272,14 @@ function M.process_api_package(package, api_package)
 					end
 					table.insert(
 						diagnostics,
-						crate_diagnostic(package, kind, vim.diagnostic.severity.ERROR, PackageScope.VERS)
+						package_diagnostic(package, kind, vim.diagnostic.severity.ERROR, PackageScope.VERS)
 					)
 				end
 			end
 		else
 			table.insert(
 				diagnostics,
-				crate_diagnostic(
+				package_diagnostic(
 					package,
 					NpackagesDiagnosticKind.CRATE_ERROR_FETCHING,
 					vim.diagnostic.severity.ERROR,

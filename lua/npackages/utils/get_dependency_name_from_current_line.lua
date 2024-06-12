@@ -1,4 +1,3 @@
-local logger = require("npackages.logger")
 local get_dependency_name_from_line = require("npackages.utils.get_dependency_name_from_line")
 
 --- Gets dependency name from current line
@@ -11,8 +10,6 @@ return function()
 	if dependency_name then
 		return dependency_name
 	else
-		logger.warn("No valid dependency on current line")
-
 		return nil
 	end
 end

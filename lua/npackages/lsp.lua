@@ -39,10 +39,21 @@ function M.start()
 	local client_id = vim.lsp.start({
 		name = state.cfg.lsp.name,
 		cmd = server(),
+		root_dir = vim.fs.root(0, { "package.json" }),
 		filetypes = { "json" },
 		commands = commands,
 		autostart = state.cfg.autoload,
-		on_attach = state.cfg.lsp.on_attach,
+		on_attach = function(client, bufnr)
+			-- client.progress:push({
+			-- 	token = "1",
+			-- 	---@type lsp.WorkDoneProgressReport
+			-- 	data = {
+			-- 		kind = "report",
+			-- 		message = "Initializing",
+			-- 	},
+			-- })
+			state.cfg.lsp.on_attach(client, bufnr)
+		end,
 		on_error = function(code, err)
 			logger.error({ code = code, err = err })
 		end,
@@ -62,6 +73,8 @@ function M.start()
 	if not client then
 		return
 	end
+
+	return client
 end
 
 return M

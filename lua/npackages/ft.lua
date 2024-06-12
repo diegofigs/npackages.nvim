@@ -81,15 +81,13 @@ M.setup = function(user_options)
 		})
 	end
 
-	-- if state.cfg.autoupdate then
-	-- 	vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "TextChangedP" }, {
-	-- 		group = group,
-	-- 		pattern = "package.json",
-	-- 		callback = function()
-	-- 			core.throttled_update(nil, false)
-	-- 		end,
-	-- 	})
-	--
+	vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+		group = group,
+		pattern = "package.json",
+		callback = hover.hide,
+	})
+
+	-- TODO: recreate in lsp with textDocument/didSave
 	-- 	vim.api.nvim_create_autocmd("BufWritePost", {
 	-- 		group = group,
 	-- 		pattern = "package.json",
@@ -97,13 +95,6 @@ M.setup = function(user_options)
 	-- 			core.update()
 	-- 		end,
 	-- 	})
-	-- end
-
-	vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-		group = group,
-		pattern = "package.json",
-		callback = hover.hide,
-	})
 end
 
 return M

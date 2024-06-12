@@ -1,4 +1,4 @@
-local constants = require("npackages.constants")
+local npm = require("npackages.npm")
 local get_dependency_name_from_current_line = require("npackages.utils.get_dependency_name_from_current_line")
 local job = require("npackages.utils.job")
 local loading = require("npackages.ui.loading")
@@ -11,9 +11,9 @@ local util = require("npackages.util")
 ---@return string
 local function get_command(dependency_name)
 	local package_manager = state.package_manager[util.current_buf()]
-	if package_manager == constants.PACKAGE_MANAGERS.yarn then
+	if package_manager == npm.PACKAGE_MANAGERS.yarn then
 		return "yarn remove " .. dependency_name
-	elseif package_manager == constants.PACKAGE_MANAGERS.pnpm then
+	elseif package_manager == npm.PACKAGE_MANAGERS.pnpm then
 		return "pnpm remove " .. dependency_name
 	else
 		return "npm uninstall " .. dependency_name

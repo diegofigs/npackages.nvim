@@ -42,8 +42,6 @@ M.JsonSectionKind = JsonSectionKind
 ---@field pkg JsonPackagePkg|nil
 ---@field workspace JsonPackageWorkspace|nil
 ---@field opt JsonPackageOpt|nil
----@field def JsonPackageDef|nil
----@field feat JsonPackageFeat|nil
 ---@field section JsonSection|nil
 ---@field dep_kind DepKind|nil
 local Package = {}
@@ -122,20 +120,6 @@ M.JsonPackageSyntax = JsonPackageSyntax
 ---@field col Span
 ---@field decl_col Span
 
----@class JsonPackageDef
----@field enabled boolean
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
-
----@class JsonPackageFeat
----@field items TomlFeature[]
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
-
 ---@enum DepKind
 local DepKind = {
 	REGISTRY = 1,
@@ -145,60 +129,15 @@ local DepKind = {
 }
 M.DepKind = DepKind
 
----@class TomlFeature
----@field name string
----relative to to the start of the features text
----@field col Span
----relative to to the start of the features text
----@field decl_col Span
----@field quote Quotes
----@field comma boolean
-local TomlFeature = {}
-M.TomlFeature = TomlFeature
-
 ---@class Quotes
 ---@field s string
 ---@field e string|nil
-
----@param text string
----@return TomlFeature[]
-function M.parse_crate_features(text)
-	---@type TomlFeature[]
-	local feats = {}
-	---@param fds integer
-	---@param qs string
-	---@param fs integer
-	---@param f string
-	---@param fe integer
-	---@param qe string|nil
-	---@param fde integer
-	---@param c string|nil
-	for fds, qs, fs, f, fe, qe, fde, c in text:gmatch([[[,]?()%s*(["'])()([^,"']*)()(["']?)%s*()([,]?)]]) do
-		---@type TomlFeature
-		local feat = {
-			name = f,
-			col = Span.new(fs - 1, fe - 1),
-			decl_col = Span.new(fds - 1, fde - 1),
-			quote = { s = qs, e = qe ~= "" and qe or nil },
-			comma = c == ",",
-		}
-		table.insert(feats, feat)
-	end
-
-	return feats
-end
 
 ---@param obj JsonPackage
 ---@return JsonPackage
 function Package.new(obj)
 	if obj.vers then
 		obj.vers.reqs = semver.parse_requirements(obj.vers.text)
-	end
-	if obj.feat then
-		obj.feat.items = M.parse_crate_features(obj.feat.text)
-	end
-	if obj.def then
-		obj.def.enabled = obj.def.text ~= "false"
 	end
 	if obj.workspace then
 		obj.workspace.enabled = obj.workspace.text ~= "false"
@@ -223,33 +162,6 @@ end
 ---@return Requirement[]
 function Package:vers_reqs()
 	return self.vers and self.vers.reqs or {}
-end
-
----@param name string
----@return TomlFeature|nil
----@return integer|nil
-function Package:get_feat(name)
-	if not self.feat or not self.feat.items then
-		return nil, nil
-	end
-
-	for i, f in ipairs(self.feat.items) do
-		if f.name == name then
-			return f, i
-		end
-	end
-
-	return nil, nil
-end
-
----@return TomlFeature[]
-function Package:feats()
-	return self.feat and self.feat.items or {}
-end
-
----@return boolean
-function Package:is_def_enabled()
-	return not self.def or self.def.enabled
 end
 
 ---@return boolean
@@ -297,8 +209,6 @@ function Section:display(override_name)
 		text = text .. "dependencies"
 	elseif self.kind == JsonSectionKind.DEV then
 		text = text .. "devDependencies"
-		-- elseif self.kind == JsonSectionKind.BUILD then
-		-- 	text = text .. "build-dependencies"
 	end
 
 	local name = override_name or self.name
@@ -485,7 +395,7 @@ function M.parse_packages(lines)
 		end
 		--- 3. section closure
 		if dep_section and section_end then
-			dep_section.lines.e = line_nr
+			dep_section.lines.e = line_nr + 1
 			table.insert(sections, dep_section)
 			dep_section = nil
 		end

@@ -4,6 +4,7 @@ local api = require("npackages.api")
 local async = require("npackages.async")
 local diagnostic = require("npackages.diagnostic")
 local json = require("npackages.json")
+local logger = require("npackages.logger")
 local ui = require("npackages.ui")
 local util = require("npackages.util")
 local DepKind = json.DepKind
@@ -24,16 +25,6 @@ M.reload_deps = async.wrap(function(package_name, versions, version)
 
 	if deps then
 		version.deps = deps
-		for _, d in ipairs(deps) do
-			-- optional dependencies are automatically promoted to features
-			if d.opt and not version.features:get_feat(d.name) then
-				version.features:insert({
-					name = d.name,
-					members = {},
-				})
-			end
-		end
-		-- version.features:sort()
 
 		for uri, cache in pairs(state.doc_cache) do
 			local b = vim.uri_to_bufnr(uri)
@@ -79,7 +70,7 @@ M.reload_package = async.wrap(function(package_name)
 				cache.info[k] = info
 				vim.list_extend(cache.diagnostics, diagnostics)
 
-				ui.display_crate_info(b, info, diagnostics)
+				ui.display_package_info(b, info, diagnostics)
 
 				local version = info.vers_match or info.vers_upgrade
 				if version then
@@ -114,13 +105,13 @@ local function update(uri, reload)
 	local cache = {
 		packages = package_cache,
 		info = {},
-		diagnostics = {},
+		diagnostics = diagnostics,
 		working_crates = working_crates,
 	}
 	state.doc_cache[uri] = cache
 
 	ui.clear(buf)
-	-- ui.display_diagnostics(buf, diagnostics)
+	ui.display_diagnostics(buf, diagnostics)
 	for cache_key, pkg in pairs(package_cache) do
 		if pkg.dep_kind ~= DepKind.REGISTRY or pkg.registry ~= nil then
 			goto continue
@@ -134,7 +125,7 @@ local function update(uri, reload)
 			cache.info[cache_key] = info
 			vim.list_extend(cache.diagnostics, c_diagnostics)
 
-			ui.display_crate_info(buf, info, c_diagnostics)
+			ui.display_package_info(buf, info, c_diagnostics)
 
 			local version = info.vers_match or info.vers_upgrade
 			if version then

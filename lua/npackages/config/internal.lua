@@ -128,7 +128,7 @@ entry(M.schema, {
 	type = BOOLEAN_TYPE,
 	default = true,
 	description = [[
-        Automatically run update when opening a Cargo.toml.
+        Automatically run update when opening a package.json.
     ]],
 })
 entry(M.schema, {
@@ -243,7 +243,7 @@ entry(M.schema, {
 	default = function(_) end,
 	default_text = "function(bufnr) end",
 	description = [[
-        Callback to run when a `Cargo.toml` file is opened.
+        Callback to run when a `package.json` file is opened.
 
         NOTE: Ignored if |crates-config-autoload| is disabled.
     ]],
@@ -435,13 +435,13 @@ entry(schema_diagnostic, {
 entry(schema_diagnostic, {
 	name = "crate_dup",
 	type = STRING_TYPE,
-	default = "Duplicate package entry",
+	default = "Duplicate package key",
 	hidden = true,
 })
 entry(schema_diagnostic, {
 	name = "crate_dup_orig",
 	type = STRING_TYPE,
-	default = "Original package entry is defined here",
+	default = "Original package key is defined here",
 	hidden = true,
 })
 entry(schema_diagnostic, {

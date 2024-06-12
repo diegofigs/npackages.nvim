@@ -23,8 +23,6 @@ local function insert_version(buf, package, text)
 			local line = package.lines.s
 			local col = math.min(
 				package.pkg and package.pkg.col.s or 999,
-				package.def and package.def.col.s or 999,
-				package.feat and package.def.col.s or 999,
 				package.git and package.git.decl_col.s or 999,
 				package.path and package.path.decl_col.s or 999
 			)

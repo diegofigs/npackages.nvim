@@ -1,9 +1,14 @@
-local constants = require("npackages.constants")
+local npm = require("npackages.npm")
 local job = require("npackages.utils.job")
 local reload = require("npackages.utils.reload")
 local state = require("npackages.state")
 local util = require("npackages.util")
 local loading = require("npackages.ui.loading")
+
+local DEPENDENCY_TYPE = {
+	production = "prod",
+	development = "dev",
+}
 
 --- Returns the install command based on package manager
 ---@param dependency_name string - dependency for which to get the command
@@ -11,18 +16,18 @@ local loading = require("npackages.ui.loading")
 ---@return string
 local function get_command(type, dependency_name)
 	local package_manager = state.package_manager[util.current_buf()]
-	if type == constants.DEPENDENCY_TYPE.development then
-		if package_manager == constants.PACKAGE_MANAGERS.yarn then
+	if type == DEPENDENCY_TYPE.development then
+		if package_manager == npm.PACKAGE_MANAGERS.yarn then
 			return "yarn add -D " .. dependency_name
-		elseif package_manager == constants.PACKAGE_MANAGERS.pnpm then
+		elseif package_manager == npm.PACKAGE_MANAGERS.pnpm then
 			return "pnpm add -D " .. dependency_name
 		else
 			return "npm install --save-dev " .. dependency_name
 		end
 	else
-		if package_manager == constants.PACKAGE_MANAGERS.yarn then
+		if package_manager == npm.PACKAGE_MANAGERS.yarn then
 			return "yarn add " .. dependency_name
-		elseif package_manager == constants.PACKAGE_MANAGERS.pnpm then
+		elseif package_manager == npm.PACKAGE_MANAGERS.pnpm then
 			return "pnpm add " .. dependency_name
 		else
 			return "npm install " .. dependency_name
@@ -43,7 +48,7 @@ return function()
 			}, function(dependency_name)
 				if dependency_name ~= "" and dependency_name ~= nil then
 					local id = loading.new("| 󰇚 Installing " .. dependency_name .. " dependency")
-					local type = constants.DEPENDENCY_TYPE[selected_dependency_type:lower()]
+					local type = DEPENDENCY_TYPE[selected_dependency_type:lower()]
 					job({
 						json = false,
 						command = get_command(type, dependency_name),

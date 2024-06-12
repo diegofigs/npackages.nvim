@@ -6,7 +6,6 @@ local SemVer = types.SemVer
 
 describe("npackages.json", function()
 	it("can parse json", function()
-		---@type string
 		local json_str = io.open("spec/mocks/pure-rand.json"):read("a")
 		local crate = api.parse_crate(json_str)
 		assert.has_same({

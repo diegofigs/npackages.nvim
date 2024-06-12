@@ -1,4 +1,4 @@
-local constants = require("npackages.constants")
+local npm = require("npackages.npm")
 local get_dependency_name_from_current_line = require("npackages.utils.get_dependency_name_from_current_line")
 local job = require("npackages.utils.job")
 local loading = require("npackages.ui.loading")
@@ -12,13 +12,13 @@ local util = require("npackages.util")
 ---@param package_manager string
 ---@return string
 local function get_change_version_command(dependency_name, version, package_manager)
-	if package_manager == constants.PACKAGE_MANAGERS.yarn then
+	if package_manager == npm.PACKAGE_MANAGERS.yarn then
 		if state.has_old_yarn then
 			return "yarn upgrade " .. dependency_name .. "@" .. version
 		end
 
 		return "yarn up " .. dependency_name .. "@" .. version
-	elseif package_manager == constants.PACKAGE_MANAGERS.pnpm then
+	elseif package_manager == npm.PACKAGE_MANAGERS.pnpm then
 		return "pnpm add " .. dependency_name .. "@" .. version
 	else
 		return "npm install " .. dependency_name .. "@" .. version
@@ -30,7 +30,7 @@ end
 ---@param package_manager string
 ---@return string
 local function get_version_list_command(dependency_name, package_manager)
-	if package_manager == constants.PACKAGE_MANAGERS.pnpm then
+	if package_manager == npm.PACKAGE_MANAGERS.pnpm then
 		return "pnpm view " .. dependency_name .. " versions --json"
 	else
 		return "npm view " .. dependency_name .. " versions --json"

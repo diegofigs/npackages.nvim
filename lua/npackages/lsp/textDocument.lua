@@ -3,23 +3,9 @@ local state = require("npackages.lsp.state")
 local cfg = require("npackages.state").cfg
 local get_dependency_name_from_line = require("npackages.utils.get_dependency_name_from_line")
 local core = require("npackages.lsp.core")
+local logger = require("npackages.logger")
 
 local textDocument = {}
-
----@param d NpackagesDiagnostic
----@return vim.Diagnostic
-local function to_vim_diagnostic(d)
-	---@type vim.Diagnostic
-	return {
-		lnum = d.lnum,
-		end_lnum = d.end_lnum,
-		col = d.col,
-		end_col = d.end_col,
-		severity = d.severity,
-		message = cfg.diagnostic[d.kind],
-		source = "npackages",
-	}
-end
 
 ---@param d NpackagesDiagnostic
 ---@return lsp.Diagnostic
@@ -31,13 +17,13 @@ local function to_lsp_diagnostic(d)
 			["end"] = { line = d.end_lnum, character = d.end_col },
 		},
 		severity = d.severity,
-		message = d.kind,
+		message = cfg.diagnostic[d.kind],
 		source = "npackages",
 	}
 end
 
 ---@param params lsp.DidOpenTextDocumentParams
----@param callback fun(diagnostics: vim.Diagnostic[])
+---@param callback fun(diagnostics: lsp.Diagnostic[])
 function textDocument.didOpen(params, callback)
 	local doc = params.textDocument
 	state.documents[doc.uri] = doc
@@ -49,17 +35,16 @@ function textDocument.didOpen(params, callback)
 	end, cfg.autoupdate_throttle)
 
 	-- compute diagnostics
-	---@type vim.Diagnostic[]
 	local diagnostics = {}
 	for _, d in ipairs(cache.diagnostics) do
-		table.insert(diagnostics, to_vim_diagnostic(d))
+		table.insert(diagnostics, to_lsp_diagnostic(d))
 	end
 
 	callback(diagnostics)
 end
 
 ---@param params lsp.DidChangeTextDocumentParams
----@param callback fun(diagnostics: vim.Diagnostic[])
+---@param callback fun(diagnostics: lsp.Diagnostic[])
 function textDocument.didChange(params, callback)
 	local doc = params.textDocument
 	for _, change in ipairs(params.contentChanges) do
@@ -67,13 +52,12 @@ function textDocument.didChange(params, callback)
 	end
 
 	local cache = core.update(doc.uri)
-	core.throttled_update(nil, false)
+	-- core.throttled_update(nil, false)
 
 	-- compute diagnostics
-	---@type vim.Diagnostic[]
 	local diagnostics = {}
 	for _, d in ipairs(cache.diagnostics) do
-		table.insert(diagnostics, to_vim_diagnostic(d))
+		table.insert(diagnostics, to_lsp_diagnostic(d))
 	end
 
 	callback(diagnostics)
@@ -98,6 +82,7 @@ function textDocument.hover(params)
 	local line = lines[params.position.line + 1] -- 1-based index on lists
 
 	local package_name = get_dependency_name_from_line(line)
+	logger.info(package_name)
 
 	if package_name then
 		return { contents = { kind = "plaintext", value = package_name } }
