@@ -1,5 +1,5 @@
 local npm = require("npackages.npm")
-local job = require("npackages.utils.job")
+local job = require("npackages.util.job")
 local loading = require("npackages.ui.loading")
 local state = require("npackages.state")
 local util = require("npackages.util")

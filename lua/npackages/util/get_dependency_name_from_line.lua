@@ -1,4 +1,4 @@
-local clean_version = require("npackages.utils.clean_version")
+local clean_version = require("npackages.util.clean_version")
 
 --- Checks if the given string conforms to 1.0.0 version format
 -- @param value: string - value to check if conforms

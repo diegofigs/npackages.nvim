@@ -1,8 +1,8 @@
 local npm = require("npackages.npm")
-local get_dependency_name_from_current_line = require("npackages.utils.get_dependency_name_from_current_line")
-local job = require("npackages.utils.job")
+local get_dependency_name_from_current_line = require("npackages.util.get_dependency_name_from_current_line")
+local job = require("npackages.util.job")
 local loading = require("npackages.ui.loading")
-local reload = require("npackages.utils.reload")
+local reload = require("npackages.util.reload")
 local state = require("npackages.state")
 local util = require("npackages.util")
 

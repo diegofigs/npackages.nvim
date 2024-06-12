@@ -1,7 +1,7 @@
 local async = require("npackages.async")
 local state = require("npackages.lsp.state")
 local cfg = require("npackages.state").cfg
-local get_dependency_name_from_line = require("npackages.utils.get_dependency_name_from_line")
+local get_dependency_name_from_line = require("npackages.util.get_dependency_name_from_line")
 local core = require("npackages.lsp.core")
 local logger = require("npackages.logger")
 

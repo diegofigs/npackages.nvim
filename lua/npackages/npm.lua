@@ -1,7 +1,7 @@
-local job = require("npackages.utils.job")
+local job = require("npackages.util.job")
 local logger = require("npackages.logger")
 local state = require("npackages.state")
-local to_boolean = require("npackages.utils.to_boolean")
+local to_boolean = require("npackages.util.to_boolean")
 local util = require("npackages.util")
 
 local M = {}

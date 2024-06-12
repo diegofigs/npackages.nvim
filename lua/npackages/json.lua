@@ -1,4 +1,4 @@
-local get_dependency_name_from_line = require("npackages.utils.get_dependency_name_from_line")
+local get_dependency_name_from_line = require("npackages.util.get_dependency_name_from_line")
 local semver = require("npackages.semver")
 local types = require("npackages.types")
 local Span = types.Span

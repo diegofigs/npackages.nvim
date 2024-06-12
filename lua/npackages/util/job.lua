@@ -1,5 +1,5 @@
 local logger = require("npackages.logger")
-local safe_call = require("npackages.utils.safe_call")
+local safe_call = require("npackages.util.safe_call")
 
 ---@class JobProps
 ---@field command string - string command to run

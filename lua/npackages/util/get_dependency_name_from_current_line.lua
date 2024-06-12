@@ -1,4 +1,4 @@
-local get_dependency_name_from_line = require("npackages.utils.get_dependency_name_from_line")
+local get_dependency_name_from_line = require("npackages.util.get_dependency_name_from_line")
 
 --- Gets dependency name from current line
 ---@return string?
