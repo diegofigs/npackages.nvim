@@ -1,5 +1,5 @@
-local edit = require("npackages.edit")
-local json = require("npackages.json")
+local edit = require("npackages.util.edit")
+local scanner = require("npackages.lsp.scanner")
 local hover = require("npackages.hover.common")
 local state = require("npackages.state")
 local util = require("npackages.util")
@@ -33,9 +33,9 @@ local function select_version(ctx, line, alt)
 		local line_nr = line_span.s
 		---@type string
 		local text = vim.api.nvim_buf_get_lines(ctx.buf, line_nr, line_nr + 1, false)[1]
-		text = json.trim_comments(text)
+		text = scanner.trim_comments(text)
 
-		local c = json.parse_inline_package(text, line_nr)
+		local c = scanner.parse_inline_package(text, line_nr)
 		if c and c.vers then
 			crate.vers = crate.vers or c.vers
 			crate.vers.line = line_nr

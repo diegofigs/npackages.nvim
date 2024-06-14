@@ -14,6 +14,16 @@ end
 
 --- Prints an error message
 --- For notifying the user about a critical failure
+Logger.trace = function(message)
+	__print(message)
+end
+
+Logger.debug = function(message)
+	__print(message, vim.log.levels.DEBUG)
+end
+
+--- Prints an error message
+--- For notifying the user about a critical failure
 Logger.error = function(message)
 	__print(message, vim.log.levels.ERROR, "ErrorMsg")
 end

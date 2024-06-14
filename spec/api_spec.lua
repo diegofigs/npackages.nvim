@@ -4,7 +4,7 @@ local DateTime = time.DateTime
 local types = require("npackages.types")
 local SemVer = types.SemVer
 
-describe("npackages.json", function()
+describe("npackages.api", function()
 	it("can parse json", function()
 		local json_str = io.open("spec/mocks/pure-rand.json"):read("a")
 		local crate = api.parse_crate(json_str)
@@ -65,6 +65,7 @@ describe("npackages.json", function()
 		local json_str = io.open("spec/mocks/pure-rand_dependencies.json"):read("a")
 		local dependencies = api.parse_deps(json_str)
 		assert.equals("table", type(dependencies))
+		assert.are_same({}, dependencies)
 
 		-- 	assert.same({
 		-- 		{

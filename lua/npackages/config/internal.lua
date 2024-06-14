@@ -429,19 +429,19 @@ entry(schema_diagnostic, {
 entry(schema_diagnostic, {
 	name = "section_dup_orig",
 	type = STRING_TYPE,
-	default = "Original dependency section is defined here",
+	default = "Original dependency section is first defined here",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_dup",
+	name = "package_dup",
 	type = STRING_TYPE,
-	default = "Duplicate package key",
+	default = "Duplicate package",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_dup_orig",
+	name = "package_dup_orig",
 	type = STRING_TYPE,
-	default = "Original package key is defined here",
+	default = "Original package is first defined here",
 	hidden = true,
 })
 entry(schema_diagnostic, {

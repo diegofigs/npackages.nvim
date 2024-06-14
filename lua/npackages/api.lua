@@ -2,8 +2,6 @@ local semver = require("npackages.semver")
 local state = require("npackages.state")
 local time = require("npackages.time")
 local DateTime = time.DateTime
-local types = require("npackages.types")
-local ApiDependencyKind = types.ApiDependencyKind
 
 local M = {
 	---@type table<string,PackageJob>
@@ -46,10 +44,57 @@ local M = {
 ---@field name string
 ---@field callbacks fun(deps: ApiPackageSummary[]?, cancelled: boolean)[]
 
+---@class ApiPackageSummary
+---@field name string
+---@field description string
+---@field newest_version string
+
+---@class ApiPackage
+---@field name string
+---@field description string
+---@field created DateTime
+---@field updated DateTime
+-- ---@field downloads integer
+---@field homepage string|nil
+---@field repository string|nil
+-- ---@field documentation string|nil
+-- ---@field categories string[]
+---@field keywords string[]
+---@field versions ApiVersion[]
+
+---@class ApiVersion
+---@field num string
+---@field parsed SemVer
+---@field created DateTime
+---@field deps ApiDependency[]|nil
+
+---@class ApiDependency
+---@field name string
+---@field opt boolean
+---@field kind ApiDependencyKind
+---@field vers ApiDependencyVers
+
+---@class ApiDependencyVers
+---@field reqs Requirement[]
+---@field text string
+
+---@class Requirement
+---@field cond Cond
+---@field cond_col Span
+---@field vers SemVer
+---@field vers_col Span
+
 ---@enum JobKind
 local JobKind = {
 	CRATE = 1,
 	DEPS = 2,
+}
+
+---@enum ApiDependencyKind
+local ApiDependencyKind = {
+	NORMAL = 1,
+	DEV = 2,
+	BUILD = 3,
 }
 
 local SIGTERM = 15

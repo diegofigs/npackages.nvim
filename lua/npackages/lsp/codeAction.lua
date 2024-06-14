@@ -1,9 +1,11 @@
-local edit = require("npackages.edit")
+local edit = require("npackages.util.edit")
 local state = require("npackages.lsp.state")
 local types = require("npackages.types")
 local util = require("npackages.util")
+local logger = require("npackages.logger")
+local diagnostic = require("npackages.diagnostic")
 local Span = types.Span
-local NpackagesDiagnosticKind = types.NpackagesDiagnosticKind
+local NpackagesDiagnosticKind = diagnostic.NpackagesDiagnosticKind
 
 local M = {}
 
@@ -86,7 +88,7 @@ function M.open_homepage(params)
 		if crate_info and crate_info.homepage then
 			util.open_url(crate_info.homepage)
 		else
-			util.notify(vim.log.levels.INFO, "The crate '%s' has no homepage specified", crate:package())
+			logger.info(string.format("The crate '%s' has no homepage specified", crate:package()))
 		end
 	end
 end
@@ -102,7 +104,7 @@ function M.open_repository(params)
 		if crate_info and crate_info.repository then
 			util.open_url(crate_info.repository)
 		else
-			util.notify(vim.log.levels.INFO, "The crate '%s' has no repository specified", crate:package())
+			logger.info(string.format("The crate '%s' has no repository specified", crate:package()))
 		end
 	end
 end
@@ -119,9 +121,23 @@ function M.open_npmjs(params)
 end
 
 ---@param params lsp.CodeActionParams
----@return fun()
-local function remove_diagnostic_range_action(params)
+local function remove_diagnostic_range_action(params, code)
 	local buf = vim.uri_to_bufnr(params.textDocument.uri)
+	local diagnostics = params.context.diagnostics
+	for _, d in ipairs(diagnostics) do
+		if d.source == "npackages" and d.code == code then
+			return function()
+				vim.api.nvim_buf_set_text(
+					buf,
+					d.range.start.line,
+					d.range.start.character,
+					d.range["end"].line + 1,
+					d.range.start.character,
+					{}
+				)
+			end
+		end
+	end
 	local range = params.range
 	return function()
 		vim.api.nvim_buf_set_text(
@@ -183,7 +199,7 @@ function M.get(params)
 				actions,
 				to_code_action({
 					name = "remove_duplicate_section",
-					action = remove_diagnostic_range_action(params),
+					action = remove_diagnostic_range_action(params, d.kind),
 				})
 			)
 		end
@@ -192,7 +208,7 @@ function M.get(params)
 				actions,
 				to_code_action({
 					name = "remove_original_section",
-					action = remove_lines_action(params),
+					action = remove_diagnostic_range_action(params, d.kind),
 				})
 			)
 		end
@@ -201,25 +217,25 @@ function M.get(params)
 				actions,
 				to_code_action({
 					name = "remove_invalid_dependency_section",
-					action = remove_diagnostic_range_action(params),
+					action = remove_diagnostic_range_action(params, d.kind),
 				})
 			)
 		end
-		if d.kind == NpackagesDiagnosticKind.CRATE_DUP then
+		if d.kind == NpackagesDiagnosticKind.PACKAGE_DUP then
 			table.insert(
 				actions,
 				to_code_action({
 					name = "remove_duplicate_package",
-					action = remove_diagnostic_range_action(params),
+					action = remove_lines_action(params),
 				})
 			)
 		end
-		if d.kind == NpackagesDiagnosticKind.CRATE_DUP_ORIG then
+		if d.kind == NpackagesDiagnosticKind.PACKAGE_DUP_ORIG then
 			table.insert(
 				actions,
 				to_code_action({
 					name = "remove_original_package",
-					action = remove_diagnostic_range_action(params),
+					action = remove_lines_action(params),
 				})
 			)
 		end

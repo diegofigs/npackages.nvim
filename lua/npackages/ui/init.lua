@@ -1,6 +1,6 @@
 local state = require("npackages.state")
-local types = require("npackages.types")
-local MatchKind = types.MatchKind
+local diagnostic = require("npackages.diagnostic")
+local MatchKind = diagnostic.MatchKind
 
 ---@class Ui
 ---@field custom_diagnostics table<integer,vim.Diagnostic[]>

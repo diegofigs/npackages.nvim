@@ -4,8 +4,8 @@ local delete = require("npackages.command.delete")
 local install = require("npackages.command.install")
 local change_version = require("npackages.command.change_version")
 local core = require("npackages.lsp.core")
-local state = require("npackages.lsp.state")
-local plugin_state = require("npackages.state")
+local lsp_state = require("npackages.lsp.state")
+local state = require("npackages.state")
 local ui = require("npackages.ui")
 local hover = require("npackages.hover")
 local util = require("npackages.util")
@@ -13,8 +13,8 @@ local util = require("npackages.util")
 local M = {}
 
 function M.hide()
-	plugin_state.visible = false
-	for uri, _ in pairs(state.doc_cache) do
+	state.visible = false
+	for uri, _ in pairs(lsp_state.doc_cache) do
 		local b = vim.uri_to_bufnr(uri)
 		if b then
 			ui.clear(b)
@@ -23,18 +23,19 @@ function M.hide()
 end
 
 function M.show()
-	plugin_state.visible = true
+	state.visible = true
 
-	for uri, _ in pairs(state.doc_cache) do
+	for uri, _ in pairs(lsp_state.doc_cache) do
 		local b = vim.uri_to_bufnr(uri)
 		if b then
+			-- TODO: do not trigger update when showing
 			M.update()
 		end
 	end
 end
 
 function M.toggle()
-	if plugin_state.visible then
+	if state.visible then
 		M.hide()
 	else
 		M.show()

@@ -1,11 +1,10 @@
 local server = require("npackages.lsp.server")
+local lsp_state = require("npackages.lsp.state")
 local state = require("npackages.state")
 local util = require("npackages.util")
 local logger = require("npackages.logger")
 
-local M = {
-	id = nil,
-}
+local M = {}
 
 -- The default Neovim reuse_client function checks root_dir,
 -- which is not used or needed by our LSP client.
@@ -27,35 +26,32 @@ function M.start()
 		---@param ctx lsp.HandlerContext
 		[NPACKAGES] = function(cmd, ctx)
 			local action = cmd.arguments[1]
-			if action then
+			if action and type(action) == "function" then
 				vim.api.nvim_buf_call(ctx.bufnr, action)
 			else
-				util.notify(vim.log.levels.INFO, "Action not available")
+				logger.info("Action not available")
 			end
 		end,
 	}
 
-	---@type integer?
 	local client_id = vim.lsp.start({
 		name = state.cfg.lsp.name,
 		cmd = server(),
 		root_dir = vim.fs.root(0, { "package.json" }),
 		filetypes = { "json" },
-		commands = commands,
 		autostart = state.cfg.autoload,
+		commands = commands,
+		on_init = function(client, _)
+			lsp_state.session.client_id = client.id
+		end,
 		on_attach = function(client, bufnr)
-			-- client.progress:push({
-			-- 	token = "1",
-			-- 	---@type lsp.WorkDoneProgressReport
-			-- 	data = {
-			-- 		kind = "report",
-			-- 		message = "Initializing",
-			-- 	},
-			-- })
 			state.cfg.lsp.on_attach(client, bufnr)
 		end,
 		on_error = function(code, err)
 			logger.error({ code = code, err = err })
+		end,
+		on_exit = function(code, signal, client_id)
+			logger.trace({ code = code, signal = signal, client_id = client_id })
 		end,
 	}, {
 		bufnr = util.current_buf(),
@@ -64,17 +60,10 @@ function M.start()
 	})
 
 	if client_id then
-		M.id = client_id
+		return client_id
 	else
 		return
 	end
-
-	local client = vim.lsp.get_client_by_id(client_id)
-	if not client then
-		return
-	end
-
-	return client
 end
 
 return M

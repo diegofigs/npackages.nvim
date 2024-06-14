@@ -1,13 +1,13 @@
 local state = require("npackages.lsp.state")
-local plugin_state = require("npackages.state")
+local plugin = require("npackages.state")
 local api = require("npackages.api")
 local async = require("npackages.async")
 local diagnostic = require("npackages.diagnostic")
-local json = require("npackages.json")
-local logger = require("npackages.logger")
+local scanner = require("npackages.lsp.scanner")
 local ui = require("npackages.ui")
 local util = require("npackages.util")
-local DepKind = json.DepKind
+local DepKind = scanner.DepKind
+local logger = require("npackages.logger")
 
 ---@class NpackagesLspCore
 ---@field throttled_updates table<integer,fun()[]>
@@ -36,7 +36,7 @@ M.reload_deps = async.wrap(function(package_name, versions, version)
 
 					if pkg.vers and match == version and vim.api.nvim_buf_is_loaded(b) then
 						local diagnostics = diagnostic.process_package_deps(pkg, version, deps)
-						ui.display_diagnostics(b, diagnostics)
+						-- ui.display_diagnostics(b, diagnostics)
 					end
 				end
 			end
@@ -68,14 +68,14 @@ M.reload_package = async.wrap(function(package_name)
 			if pkg:package() == package_name and vim.api.nvim_buf_is_loaded(b) then
 				local info, diagnostics = diagnostic.process_api_package(pkg, crate)
 				cache.info[k] = info
-				vim.list_extend(cache.diagnostics, diagnostics)
+				-- vim.list_extend(cache.diagnostics, diagnostics)
 
 				ui.display_package_info(b, info, diagnostics)
 
 				local version = info.vers_match or info.vers_upgrade
 				if version then
 					---@cast versions -nil
-					M.reload_deps(pkg:package(), versions, version)
+					-- M.reload_deps(pkg:package(), versions, version)
 				end
 			end
 
@@ -95,23 +95,21 @@ local function update(uri, reload)
 		api.cancel_jobs()
 	end
 
-	local lines = {}
-	for s in doc.text:gmatch("[^\r\n]+") do
-		table.insert(lines, s)
-	end
-	local sections, packages, working_crates = json.parse_packages(lines)
+	-- TODO: read file from doc_cache not editor
+	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+
+	local sections, packages = scanner.parse_document_text(lines)
 
 	local package_cache, diagnostics = diagnostic.process_packages(sections, packages)
 	local cache = {
 		packages = package_cache,
 		info = {},
 		diagnostics = diagnostics,
-		working_crates = working_crates,
 	}
 	state.doc_cache[uri] = cache
 
 	ui.clear(buf)
-	ui.display_diagnostics(buf, diagnostics)
+	-- ui.display_diagnostics(buf, diagnostics)
 	for cache_key, pkg in pairs(package_cache) do
 		if pkg.dep_kind ~= DepKind.REGISTRY or pkg.registry ~= nil then
 			goto continue
@@ -121,25 +119,25 @@ local function update(uri, reload)
 		local versions = api_package and api_package.versions
 
 		if not reload and api_package then
-			local info, c_diagnostics = diagnostic.process_api_package(pkg, api_package)
+			local info, p_diagnostics = diagnostic.process_api_package(pkg, api_package)
 			cache.info[cache_key] = info
-			vim.list_extend(cache.diagnostics, c_diagnostics)
+			-- vim.list_extend(cache.diagnostics, p_diagnostics)
 
-			ui.display_package_info(buf, info, c_diagnostics)
+			ui.display_package_info(buf, info, p_diagnostics)
 
 			local version = info.vers_match or info.vers_upgrade
 			if version then
 				if version.deps then
-					local d_diagnostics = diagnostic.process_package_deps(pkg, version, version.deps)
-					vim.list_extend(cache.diagnostics, d_diagnostics)
+					-- local d_diagnostics = diagnostic.process_package_deps(pkg, version, version.deps)
+					-- vim.list_extend(cache.diagnostics, d_diagnostics)
 
-					ui.display_diagnostics(buf, d_diagnostics)
+					-- ui.display_diagnostics(buf, d_diagnostics)
 				else
-					M.reload_deps(pkg:package(), versions, version)
+					-- M.reload_deps(pkg:package(), versions, version)
 				end
 			end
 		else
-			if plugin_state.cfg.loading_indicator then
+			if plugin.cfg.loading_indicator then
 				ui.display_loading(buf, pkg)
 			end
 
@@ -190,11 +188,13 @@ end
 
 ---@param uri lsp.DocumentUri
 function M.update(uri)
+	logger.debug(string.format("update (%s)", uri))
 	return update(uri, false)
 end
 
 ---@param uri lsp.DocumentUri
 function M.reload(uri)
+	logger.debug(string.format("reload (%s)", uri))
 	return update(uri, true)
 end
 

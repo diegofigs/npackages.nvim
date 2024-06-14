@@ -21,7 +21,6 @@ M.Section = Section
 local JsonSectionKind = {
 	DEFAULT = 1,
 	DEV = 2,
-	BUILD = 3,
 }
 M.JsonSectionKind = JsonSectionKind
 
@@ -50,8 +49,6 @@ M.Package = Package
 ---@enum JsonPackageSyntax
 local JsonPackageSyntax = {
 	PLAIN = 1,
-	INLINE_TABLE = 2,
-	TABLE = 3,
 }
 M.JsonPackageSyntax = JsonPackageSyntax
 
@@ -133,7 +130,6 @@ M.DepKind = DepKind
 ---@field s string
 ---@field e string|nil
 
----@param obj JsonPackage
 ---@return JsonPackage
 function Package.new(obj)
 	if obj.vers then
@@ -230,6 +226,7 @@ function M.parse_section(text, line_nr, start, kind)
 	---@type string, integer, string
 	local prefix, suffix_s, suffix
 
+	-- TODO: fix brittle parsing, prefix and suffix end up as empty strings
 	if kind == JsonSectionKind.DEFAULT then
 		prefix, suffix_s, suffix = text:match("^(.*)dependencies()(.*)$")
 	else
@@ -251,47 +248,22 @@ function M.parse_section(text, line_nr, start, kind)
 
 		local target = prefix
 
-		-- local dev_target = prefix:match("^(.*)dev%-$")
-		-- if dev_target then
-		-- 	target = vim.trim(dev_target)
-		-- 	section.kind = JsonSectionKind.DEV
-		-- end
-		--
-		-- local build_target = prefix:match("^(.*)build%-$")
-		-- if build_target then
-		-- 	target = vim.trim(build_target)
-		-- 	section.kind = JsonSectionKind.BUILD
-		-- end
-		--
-		-- local workspace_target = target:match("^(.*)workspace%s*%.$")
-		-- if workspace_target then
-		-- 	section.workspace = true
-		-- 	target = vim.trim(workspace_target)
-		-- end
-		--
-		-- if target then
-		-- 	local t = target:match("^target%s*%.(.+)%.$")
-		-- 	if t then
-		-- 		section.target = vim.trim(t)
-		-- 		target = ""
+		-- if suffix then
+		-- 	local n_s, n, n_e = suffix:match("^%.%s*()(.+)()%s*$")
+		-- 	if n then
+		-- 		section.name = vim.trim(n)
+		-- 		---@cast suffix_s number
+		-- 		local offset = start + suffix_s - 1
+		-- 		section.name_col = Span.new(n_s - 1 + offset, n_e - 1 + offset)
+		-- 		suffix = ""
 		-- 	end
 		-- end
-
-		if suffix then
-			local n_s, n, n_e = suffix:match("^%.%s*()(.+)()%s*$")
-			if n then
-				section.name = vim.trim(n)
-				---@cast suffix_s number
-				local offset = start + suffix_s - 1
-				section.name_col = Span.new(n_s - 1 + offset, n_e - 1 + offset)
-				suffix = ""
-			end
-		end
 
 		section.invalid = (target ~= "" or suffix ~= "")
 			or (section.workspace and section.kind ~= JsonSectionKind.DEFAULT)
 			or (section.workspace and section.target ~= nil)
 
+		section.name_col = Span.new(start, start + suffix_s + 1)
 		return Section.new(section)
 	end
 
@@ -303,7 +275,6 @@ end
 ---@param line_nr integer
 ---@return JsonPackage|nil
 function M.parse_inline_package(line, line_nr)
-	-- plain version
 	do
 		local name_s, name, name_e, quote_s, str_s, text, str_e, quote_e =
 			line:match([[^%s*()%"([^%s]+)%"()%s*:%s*(["'])()([^"']*)()(["']?).*$]])
@@ -339,18 +310,14 @@ end
 ---@param lines string[]
 ---@return JsonSection[]
 ---@return JsonPackage[]
--- @return WorkingCrate[]
-function M.parse_packages(lines)
+function M.parse_document_text(lines)
 	local sections = {}
 	local packages = {}
 
 	---@type JsonSection?
 	local dep_section
-	------@type WorkingCrate[]
-	---local working_crates = {}
 
 	for i, line in ipairs(lines) do
-		-- line = M.trim_comments(line)
 		local line_nr = i - 1
 
 		---@type string, string
@@ -367,10 +334,10 @@ function M.parse_packages(lines)
 
 		--- 1. dependency section
 		if section_text == "dependencies" then
-			local section_start = line:find('^.-%"(dependencies)%".-$')
+			local section_start = line:find('("dependencies")')
 			dep_section = M.parse_section(section_text, line_nr, section_start - 1, JsonSectionKind.DEFAULT)
 		elseif dev_section_text == "devDependencies" then
-			local section_start = line:find('^.-%"(devDependencies)%".-$')
+			local section_start = line:find('("devDependencies")')
 			dep_section = M.parse_section(dev_section_text, line_nr, section_start - 1, JsonSectionKind.DEV)
 		end
 
@@ -380,17 +347,6 @@ function M.parse_packages(lines)
 			if crate then
 				crate.section = dep_section
 				table.insert(packages, Package.new(crate))
-				-- else
-				-- 	local name = line:match([[^%s*%"([^%s]+)%"]])
-				-- 	local name_s, name_e = line:find([[^%s*%"([^%s]+)%"]])
-				-- 	if name_s and name and name_e then
-				-- 		table.insert(working_crates, {
-				-- 			name = name,
-				-- 			line = line_nr,
-				-- 			col = Span.new(name_s - 1, name_e - 1),
-				-- 			kind = types.WorkingCrateKind.INLINE,
-				-- 		})
-				-- 	end
 			end
 		end
 		--- 3. section closure

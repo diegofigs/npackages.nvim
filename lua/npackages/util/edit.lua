@@ -1,7 +1,5 @@
-local json = require("npackages.json")
 local semver = require("npackages.semver")
 local state = require("npackages.state")
-local JsonPackageSyntax = json.JsonPackageSyntax
 local types = require("npackages.types")
 local Cond = types.Cond
 local Span = types.Span
@@ -14,33 +12,14 @@ local M = {}
 ---@param text string
 ---@return Span
 local function insert_version(buf, package, text)
-	if not package.vers then
-		if package.syntax == JsonPackageSyntax.TABLE then
-			local line = package.lines.s + 1
-			vim.api.nvim_buf_set_lines(buf, line, line, false, { 'version = "' .. text .. '"' })
-			return package.lines:moved(0, 1)
-		elseif package.syntax == JsonPackageSyntax.INLINE_TABLE then
-			local line = package.lines.s
-			local col = math.min(
-				package.pkg and package.pkg.col.s or 999,
-				package.git and package.git.decl_col.s or 999,
-				package.path and package.path.decl_col.s or 999
-			)
-			vim.api.nvim_buf_set_text(buf, line, col, line, col, { ' version = "' .. text .. '",' })
-			return Span.pos(line)
-		else -- crate.syntax == JsonPackageSyntax.PLAIN
-			error("unreachable")
-		end
-	else
-		local t = text
-		if state.cfg.insert_closing_quote and not package.vers.quote.e then
-			t = text .. package.vers.quote.s
-		end
-		local line = package.vers.line
-
-		vim.api.nvim_buf_set_text(buf, line, package.vers.col.s, line, package.vers.col.e, { t })
-		return Span.pos(line)
+	local t = text
+	if state.cfg.insert_closing_quote and not package.vers.quote.e then
+		t = text .. package.vers.quote.s
 	end
+	local line = package.vers.line
+
+	vim.api.nvim_buf_set_text(buf, line, package.vers.col.s, line, package.vers.col.e, { t })
+	return Span.pos(line)
 end
 
 ---@param r Requirement

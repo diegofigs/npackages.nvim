@@ -48,11 +48,6 @@ local function extend_triggers()
 end
 
 local function attach()
-	if state.cfg.completion.cmp.enabled then
-		extend_triggers()
-		require("npackages.completion.cmp").setup()
-	end
-
 	npm.parse()
 	state.cfg.on_attach(util.current_buf())
 end
@@ -72,6 +67,11 @@ M.setup = function(user_options)
 	local group = vim.api.nvim_create_augroup("NpackagesAutogroup", {})
 
 	if state.cfg.autoload then
+		if state.cfg.completion.cmp.enabled then
+			extend_triggers()
+			require("npackages.completion.cmp").setup()
+		end
+
 		attach()
 
 		vim.api.nvim_create_autocmd("BufRead", {
@@ -86,15 +86,6 @@ M.setup = function(user_options)
 		pattern = "package.json",
 		callback = hover.hide,
 	})
-
-	-- TODO: recreate in lsp with textDocument/didSave
-	-- 	vim.api.nvim_create_autocmd("BufWritePost", {
-	-- 		group = group,
-	-- 		pattern = "package.json",
-	-- 		callback = function()
-	-- 			core.update()
-	-- 		end,
-	-- 	})
 end
 
 return M

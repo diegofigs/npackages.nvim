@@ -1,16 +1,64 @@
-local edit = require("npackages.edit")
+local edit = require("npackages.util.edit")
 local semver = require("npackages.semver")
 local state = require("npackages.state")
-local json = require("npackages.json")
-local DepKind = json.DepKind
-local JsonSectionKind = json.JsonSectionKind
-local types = require("npackages.types")
-local NpackagesDiagnostic = types.NpackagesDiagnostic
-local NpackagesDiagnosticKind = types.NpackagesDiagnosticKind
-local MatchKind = types.MatchKind
+local scanner = require("npackages.lsp.scanner")
+local DepKind = scanner.DepKind
 local util = require("npackages.util")
 
+---@class NpackagesDiagnostic
+---@field lnum integer
+---@field end_lnum integer
+---@field col integer
+---@field end_col integer
+---@field severity integer
+---@field kind NpackagesDiagnosticKind
+---@field data table<string,any>|nil
+local NpackagesDiagnostic = {}
+
+---@param obj NpackagesDiagnostic
+---@return NpackagesDiagnostic
+function NpackagesDiagnostic.new(obj)
+	return setmetatable(obj, { __index = NpackagesDiagnostic })
+end
+
+---@param line integer
+---@param col integer
+---@return boolean
+function NpackagesDiagnostic:contains(line, col)
+	return (self.lnum < line or self.lnum == line and self.col <= col)
+		and (self.end_lnum > line or self.end_lnum == line and self.end_col > col)
+end
+
 local M = {}
+
+---NOTE: Used to index the user configuration, so keys have to be in sync
+---@enum NpackagesDiagnosticKind
+M.NpackagesDiagnosticKind = {
+	-- error
+	SECTION_INVALID = "section_invalid",
+	SECTION_DUP = "section_dup",
+	PACKAGE_DUP = "package_dup",
+	PACKAGE_NOVERS = "crate_novers",
+	PACKAGE_ERROR_FETCHING = "crate_error_fetching",
+	CRATE_NAME_CASE = "crate_name_case",
+	VERS_NOMATCH = "vers_nomatch",
+	VERS_YANKED = "vers_yanked",
+	VERS_PRE = "vers_pre",
+	-- warning
+	VERS_UPGRADE = "vers_upgrade",
+	-- hint
+	SECTION_DUP_ORIG = "section_dup_orig",
+	PACKAGE_DUP_ORIG = "package_dup_orig",
+}
+
+---NOTE: Used to index the user configuration, so keys have to be in sync
+---@enum MatchKind
+M.MatchKind = {
+	VERSION = "version",
+	YANKED = "yanked",
+	PRERELEASE = "prerelease",
+	NOMATCH = "nomatch",
+}
 
 ---@enum SectionScope
 local SectionScope = {
@@ -33,7 +81,7 @@ local function section_diagnostic(section, kind, severity, scope, data)
 	local d = NpackagesDiagnostic.new({
 		lnum = section.lines.s,
 		end_lnum = section.lines.e - 1,
-		col = 0,
+		col = section.name_col.s,
 		end_col = 999,
 		severity = severity,
 		kind = kind,
@@ -82,13 +130,6 @@ local function package_diagnostic(crate, kind, severity, scope, data)
 		-- 		d.col = crate.def.col.s
 		-- 		d.end_col = crate.def.col.e
 		-- 	end
-		-- elseif scope == PackageScope.FEAT then
-		-- 	if crate.feat then
-		-- 		d.lnum = crate.feat.line
-		-- 		d.end_lnum = crate.feat.line
-		-- 		d.col = crate.feat.col.s
-		-- 		d.end_col = crate.feat.col.e
-		-- 	end
 	end
 
 	return d
@@ -109,37 +150,19 @@ function M.process_packages(sections, packages)
 	for _, s in ipairs(sections) do
 		local key = s.text:gsub("%s+", "")
 
-		if s.workspace and s.kind ~= JsonSectionKind.DEFAULT then
+		if s.invalid then
 			table.insert(
 				diagnostics,
-				section_diagnostic(
-					s,
-					NpackagesDiagnosticKind.WORKSPACE_SECTION_NOT_DEFAULT,
-					vim.diagnostic.severity.WARN
-				)
-			)
-		elseif s.workspace and s.target ~= nil then
-			table.insert(
-				diagnostics,
-				section_diagnostic(
-					s,
-					NpackagesDiagnosticKind.WORKSPACE_SECTION_HAS_TARGET,
-					vim.diagnostic.severity.ERROR
-				)
-			)
-		elseif s.invalid then
-			table.insert(
-				diagnostics,
-				section_diagnostic(s, NpackagesDiagnosticKind.SECTION_INVALID, vim.diagnostic.severity.WARN)
+				section_diagnostic(s, M.NpackagesDiagnosticKind.SECTION_INVALID, vim.diagnostic.severity.WARN)
 			)
 		elseif s_cache[key] then
 			table.insert(
 				diagnostics,
-				section_diagnostic(s_cache[key], NpackagesDiagnosticKind.SECTION_DUP, vim.diagnostic.severity.ERROR)
+				section_diagnostic(s_cache[key], M.NpackagesDiagnosticKind.SECTION_DUP, vim.diagnostic.severity.ERROR)
 			)
 			table.insert(
 				diagnostics,
-				section_diagnostic(s, NpackagesDiagnosticKind.SECTION_DUP, vim.diagnostic.severity.ERROR)
+				section_diagnostic(s, M.NpackagesDiagnosticKind.SECTION_DUP, vim.diagnostic.severity.ERROR)
 			)
 		else
 			s_cache[key] = s
@@ -155,11 +178,11 @@ function M.process_packages(sections, packages)
 		if cache[key] then
 			table.insert(
 				diagnostics,
-				package_diagnostic(cache[key], NpackagesDiagnosticKind.CRATE_DUP, vim.diagnostic.severity.ERROR)
+				package_diagnostic(cache[key], M.NpackagesDiagnosticKind.PACKAGE_DUP, vim.diagnostic.severity.ERROR)
 			)
 			table.insert(
 				diagnostics,
-				package_diagnostic(c, NpackagesDiagnosticKind.CRATE_DUP, vim.diagnostic.severity.ERROR)
+				package_diagnostic(c, M.NpackagesDiagnosticKind.PACKAGE_DUP, vim.diagnostic.severity.ERROR)
 			)
 		else
 			cache[key] = c
@@ -184,7 +207,7 @@ function M.process_api_package(package, api_package)
 	local info = {
 		lines = package.lines,
 		vers_line = package.vers and package.vers.line or package.lines.s,
-		match_kind = MatchKind.NOMATCH,
+		match_kind = M.MatchKind.NOMATCH,
 	}
 	local diagnostics = {}
 
@@ -195,7 +218,7 @@ function M.process_api_package(package, api_package)
 					diagnostics,
 					package_diagnostic(
 						package,
-						NpackagesDiagnosticKind.CRATE_NAME_CASE,
+						M.NpackagesDiagnosticKind.CRATE_NAME_CASE,
 						vim.diagnostic.severity.ERROR,
 						nil,
 						{ crate = package, crate_name = api_package.name }
@@ -208,7 +231,7 @@ function M.process_api_package(package, api_package)
 			if semver.matches_requirements(newest.parsed, package:vers_reqs()) then
 				-- version matches, no upgrade available
 				info.vers_match = newest
-				info.match_kind = MatchKind.VERSION
+				info.match_kind = M.MatchKind.VERSION
 
 				if package.vers and package.vers.text ~= edit.version_text(package, newest.parsed) then
 					info.vers_update = newest
@@ -230,7 +253,7 @@ function M.process_api_package(package, api_package)
 						diagnostics,
 						package_diagnostic(
 							package,
-							NpackagesDiagnosticKind.VERS_UPGRADE,
+							M.NpackagesDiagnosticKind.VERS_UPGRADE,
 							vim.diagnostic.severity.WARN,
 							PackageScope.VERS
 						)
@@ -239,36 +262,36 @@ function M.process_api_package(package, api_package)
 
 				if match then
 					-- found a match
-					info.match_kind = MatchKind.VERSION
+					info.match_kind = M.MatchKind.VERSION
 				elseif match_pre then
 					-- found a pre-release match
-					info.match_kind = MatchKind.PRERELEASE
+					info.match_kind = M.MatchKind.PRERELEASE
 					table.insert(
 						diagnostics,
 						package_diagnostic(
 							package,
-							NpackagesDiagnosticKind.VERS_PRE,
+							M.NpackagesDiagnosticKind.VERS_PRE,
 							vim.diagnostic.severity.ERROR,
 							PackageScope.VERS
 						)
 					)
 				elseif match_yanked then
 					-- found a yanked match
-					info.match_kind = MatchKind.YANKED
+					info.match_kind = M.MatchKind.YANKED
 					table.insert(
 						diagnostics,
 						package_diagnostic(
 							package,
-							NpackagesDiagnosticKind.VERS_YANKED,
+							M.NpackagesDiagnosticKind.VERS_YANKED,
 							vim.diagnostic.severity.ERROR,
 							PackageScope.VERS
 						)
 					)
 				else
 					-- no match found
-					local kind = NpackagesDiagnosticKind.VERS_NOMATCH
+					local kind = M.NpackagesDiagnosticKind.VERS_NOMATCH
 					if not package.vers then
-						kind = NpackagesDiagnosticKind.CRATE_NOVERS
+						kind = M.NpackagesDiagnosticKind.PACKAGE_NOVERS
 					end
 					table.insert(
 						diagnostics,
@@ -281,7 +304,7 @@ function M.process_api_package(package, api_package)
 				diagnostics,
 				package_diagnostic(
 					package,
-					NpackagesDiagnosticKind.CRATE_ERROR_FETCHING,
+					M.NpackagesDiagnosticKind.PACKAGE_ERROR_FETCHING,
 					vim.diagnostic.severity.ERROR,
 					PackageScope.VERS
 				)

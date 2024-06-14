@@ -1,9 +1,7 @@
 local hover = require("npackages.hover.common")
 local hover_package = require("npackages.hover.package")
 local hover_versions = require("npackages.hover.versions")
-local json = require("npackages.json")
-local state = require("npackages.lsp.state")
-local JsonPackageSyntax = json.JsonPackageSyntax
+local lsp_state = require("npackages.lsp.state")
 local types = require("npackages.types")
 local Span = types.Span
 local util = require("npackages.util")
@@ -27,7 +25,7 @@ local function line_crate_info()
 		return
 	end
 
-	local api_package = state.api_cache[crate:package()]
+	local api_package = lsp_state.api_cache[crate:package()]
 	if not api_package then
 		return
 	end
@@ -47,24 +45,8 @@ local function line_crate_info()
 		info.pref = hover.Type.VERSIONS
 	end
 
-	if crate.syntax == JsonPackageSyntax.PLAIN then
-		if crate.vers.col:moved(-1, 1):contains(col) then
-			versions_info()
-			-- else
-			-- crate_info()
-		end
-	elseif crate.syntax == JsonPackageSyntax.TABLE then
-		if crate.vers and line == crate.vers.line then
-			versions_info()
-			-- else
-			-- crate_info()
-		end
-	elseif crate.syntax == JsonPackageSyntax.INLINE_TABLE then
-		if crate.vers and crate.vers.decl_col:contains(col) then
-			versions_info()
-			-- else
-			-- crate_info()
-		end
+	if crate.vers.col:moved(-1, 1):contains(col) then
+		versions_info()
 	end
 
 	return info
@@ -87,7 +69,7 @@ function Hover.show()
 	end
 
 	if info.pref == hover.Type.JSON then
-		local crate = state.api_cache[info.crate:package()]
+		local crate = lsp_state.api_cache[info.crate:package()]
 		if crate then
 			hover_package.open(crate, {})
 		end
@@ -121,7 +103,7 @@ function Hover.show_package()
 		return
 	end
 
-	local crate = state.api_cache[info.crate:package()]
+	local crate = lsp_state.api_cache[info.crate:package()]
 	if crate then
 		hover_package.open(crate, {})
 	end

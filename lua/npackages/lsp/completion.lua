@@ -1,8 +1,8 @@
 local api = require("npackages.api")
 local async = require("npackages.async")
-local state = require("npackages.state")
+local plugin = require("npackages.state")
 local core = require("npackages.lsp.core")
-local lsp_state = require("npackages.lsp.state")
+local state = require("npackages.lsp.state")
 local types = require("npackages.types")
 local Span = types.Span
 local util = require("npackages.util")
@@ -48,7 +48,7 @@ local function complete_versions(pkg, versions)
 			kind = VALUE_KIND,
 			sortText = string.format("%04d", i),
 		}
-		if state.cfg.completion.insert_closing_quote then
+		if plugin.cfg.completion.insert_closing_quote then
 			if pkg.vers and not pkg.vers.quote.e then
 				r.insertText = v.num .. pkg.vers.quote.s
 			end
@@ -59,10 +59,10 @@ local function complete_versions(pkg, versions)
 		-- elseif v.parsed.pre then
 		-- 	r.documentation = state.cfg.completion.text.prerelease
 		-- end
-		if state.cfg.completion.cmp.use_custom_kind then
+		if plugin.cfg.completion.cmp.use_custom_kind then
 			r.cmp = {
-				kind_text = state.cfg.completion.cmp.kind_text.version,
-				kind_hl_group = state.cfg.completion.cmp.kind_highlight.version,
+				kind_text = plugin.cfg.completion.cmp.kind_text.version,
+				kind_hl_group = plugin.cfg.completion.cmp.kind_highlight.version,
 			}
 		end
 
@@ -81,14 +81,14 @@ end
 ---@param kind WorkingCrateKind?
 ---@return lsp.CompletionList?
 local function complete_packages(prefix, col, line, kind)
-	if #prefix < state.cfg.completion.npackages.min_chars then
+	if #prefix < plugin.cfg.completion.npackages.min_chars then
 		return
 	end
 
 	---@type string[]
 	local search
 	repeat
-		search = lsp_state.search_cache.searches[prefix]
+		search = state.search_cache.searches[prefix]
 		if not search then
 			---@type ApiPackageSummary[]?, boolean?
 			local searches, cancelled
@@ -102,10 +102,10 @@ local function complete_packages(prefix, col, line, kind)
 				return
 			end
 			if searches then
-				lsp_state.search_cache.searches[prefix] = {}
+				state.search_cache.searches[prefix] = {}
 				for _, result in ipairs(searches) do
-					lsp_state.search_cache.results[result.name] = result
-					table.insert(lsp_state.search_cache.searches[prefix], result.name)
+					state.search_cache.results[result.name] = result
+					table.insert(state.search_cache.searches[prefix], result.name)
 				end
 			end
 		end
@@ -132,7 +132,7 @@ local function complete_packages(prefix, col, line, kind)
 
 	local results = {}
 	for _, r in ipairs(search) do
-		local result = lsp_state.search_cache.results[r]
+		local result = state.search_cache.results[r]
 		table.insert(results, {
 			label = result.name,
 			kind = VALUE_KIND,
@@ -177,7 +177,7 @@ local function complete(params)
 		return
 	end
 
-	if state.cfg.completion.npackages.enabled then
+	if plugin.cfg.completion.npackages.enabled then
 		if
 			pkg.pkg and pkg.pkg.line == line and pkg.pkg.col:moved(0, 1):contains(col)
 			or not pkg.pkg
@@ -192,7 +192,7 @@ local function complete(params)
 		end
 	end
 
-	local api_package = lsp_state.api_cache[pkg:package()]
+	local api_package = state.api_cache[pkg:package()]
 
 	if not api_package and api.is_fetching_crate(pkg:package()) then
 		local _, cancelled = api.await_crate(pkg:package())
@@ -208,7 +208,7 @@ local function complete(params)
 			return
 		end
 
-		api_package = lsp_state.api_cache[pkg:package()]
+		api_package = state.api_cache[pkg:package()]
 	end
 
 	if not api_package then
@@ -221,7 +221,7 @@ local function complete(params)
 end
 
 ---@param params lsp.CompletionParams
----@param callback fun(response: lsp.CompletionList?)
+---@param callback fun(response: vim.lsp.CompletionResult?)
 function M.complete(params, callback)
 	vim.schedule(async.wrap(function()
 		callback(complete(params))
