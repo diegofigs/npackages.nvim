@@ -2,11 +2,9 @@ local semver = require("npackages.semver")
 local state = require("npackages.state")
 local scanner = require("npackages.lsp.scanner")
 local DepKind = scanner.DepKind
-local util = require("npackages.util")
 
-local types = require("npackages.types")
-local Cond = types.Cond
-local SemVer = types.SemVer
+local Cond = semver.Cond
+local SemVer = semver.SemVer
 
 ---@class NpackagesDiagnostic
 ---@field lnum integer
@@ -203,7 +201,7 @@ end
 ---@return NpackagesDiagnostic[]
 function M.process_api_package(package, api_package)
 	local versions = api_package and api_package.versions
-	local newest, newest_pre = util.get_newest(versions, nil)
+	local newest, newest_pre = M.get_newest(versions, nil)
 	newest = newest or newest_pre
 
 	---@type PackageInfo
@@ -241,7 +239,7 @@ function M.process_api_package(package, api_package)
 				end
 			else
 				-- version does not match, upgrade available
-				local match, match_pre, match_yanked = util.get_newest(versions, package:vers_reqs())
+				local match, match_pre, match_yanked = M.get_newest(versions, package:vers_reqs())
 				info.vers_match = match or match_pre or match_yanked
 				info.vers_upgrade = newest
 
@@ -475,6 +473,39 @@ function M.version_text(package, version, alt)
 	else
 		return version:display()
 	end
+end
+
+---@param versions ApiVersion[]|nil
+---@param reqs Requirement[]|nil
+---@return ApiVersion|nil
+---@return ApiVersion|nil
+---@return ApiVersion|nil
+function M.get_newest(versions, reqs)
+	if not versions or not next(versions) then
+		return nil
+	end
+
+	local allow_pre = reqs and semver.allows_pre(reqs) or false
+
+	---@type ApiVersion|nil, ApiVersion|nil
+	local newest_pre, newest
+
+	for _, v in ipairs(versions) do
+		if not reqs or semver.matches_requirements(v.parsed, reqs) then
+			-- if not v.yanked then
+			if allow_pre or not v.parsed.pre then
+				newest = v
+				break
+			else
+				newest_pre = newest_pre or v
+			end
+			-- else
+			-- 	newest_yanked = newest_yanked or v
+			-- end
+		end
+	end
+
+	return newest, newest_pre
 end
 
 return M

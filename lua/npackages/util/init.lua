@@ -1,8 +1,8 @@
-local semver = require("npackages.semver")
 local state = require("npackages.state")
 local lsp_state = require("npackages.lsp.state")
 local types = require("npackages.types")
 local Span = types.Span
+local logger = require("npackages.logger")
 
 local M = {}
 
@@ -74,46 +74,6 @@ function M.get_lsp_packages(uri, lines)
 	return line_packages
 end
 
----@param versions ApiVersion[]|nil
----@param reqs Requirement[]|nil
----@return ApiVersion|nil
----@return ApiVersion|nil
----@return ApiVersion|nil
-function M.get_newest(versions, reqs)
-	if not versions or not next(versions) then
-		return nil
-	end
-
-	local allow_pre = reqs and semver.allows_pre(reqs) or false
-
-	---@type ApiVersion|nil, ApiVersion|nil
-	local newest_pre, newest
-
-	for _, v in ipairs(versions) do
-		if not reqs or semver.matches_requirements(v.parsed, reqs) then
-			-- if not v.yanked then
-			if allow_pre or not v.parsed.pre then
-				newest = v
-				break
-			else
-				newest_pre = newest_pre or v
-			end
-			-- else
-			-- 	newest_yanked = newest_yanked or v
-			-- end
-		end
-	end
-
-	return newest, newest_pre
-end
-
----@param name string
----@return boolean
-function M.lualib_installed(name)
-	local ok = pcall(require, name)
-	return ok
-end
-
 ---comment
 ---@param name string
 ---@return boolean
@@ -123,14 +83,6 @@ function M.binary_installed(name)
 	end
 
 	return vim.fn.executable(name) == 1
-end
-
----comment
----@param severity integer
----@param s string
----@param ... any
-function M.notify(severity, s, ...)
-	vim.notify(s:format(...), severity, { title = state.cfg.notification_title })
 end
 
 ---@param name string
@@ -148,13 +100,7 @@ function M.open_url(url)
 		end
 	end
 
-	M.notify(vim.log.levels.WARN, "Couldn't open url")
-end
-
----@param name string
----@return string
-function M.format_title(name)
-	return name:sub(1, 1):upper() .. name:gsub("_", " "):sub(2)
+	logger.warn("Couldn't open url")
 end
 
 return M

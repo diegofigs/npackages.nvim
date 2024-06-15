@@ -1,13 +1,13 @@
 local api = require("npackages.api")
 local time = require("npackages.time")
 local DateTime = time.DateTime
-local types = require("npackages.types")
-local SemVer = types.SemVer
+local semver = require("npackages.semver")
+local SemVer = semver.SemVer
 
 describe("npackages.api", function()
 	it("can parse json", function()
 		local json_str = io.open("spec/mocks/pure-rand.json"):read("a")
-		local crate = api.parse_crate(json_str)
+		local crate = api.parse_package(json_str)
 		assert.has_same({
 			name = "pure-rand",
 			description = " Pure random number generator written in TypeScript",

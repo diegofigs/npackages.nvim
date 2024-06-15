@@ -3,6 +3,7 @@ local hover_package = require("npackages.hover.package")
 local hover_versions = require("npackages.hover.versions")
 local lsp_state = require("npackages.lsp.state")
 local types = require("npackages.types")
+local analyzer = require("npackages.lsp.analyzer")
 local Span = types.Span
 local util = require("npackages.util")
 
@@ -30,7 +31,7 @@ local function line_crate_info()
 		return
 	end
 
-	local m, p, y = util.get_newest(api_package.versions, crate:vers_reqs())
+	local m, p, y = analyzer.get_newest(api_package.versions, crate:vers_reqs())
 	local newest = m or p or y or api_package.versions[1]
 
 	---@type LinePackageInfo

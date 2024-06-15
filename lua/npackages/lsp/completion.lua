@@ -78,9 +78,8 @@ end
 ---@param prefix string
 ---@param col Span
 ---@param line integer
----@param kind WorkingCrateKind?
 ---@return lsp.CompletionList?
-local function complete_packages(prefix, col, line, kind)
+local function complete_packages(prefix, col, line)
 	if #prefix < plugin.cfg.completion.npackages.min_chars then
 		return
 	end
@@ -112,24 +111,13 @@ local function complete_packages(prefix, col, line, kind)
 	until search
 
 	local itemDefaults = {
-		insertTextFormat = kind and 2 or 1,
-		editRange = kind and col:range(line),
+		insertTextFormat = 1,
+		editRange = col:range(line),
 	}
 
 	local function insertText(name)
 		return name
 	end
-	if kind and kind == types.WorkingCrateKind.INLINE then
-		insertText = function(name, version)
-			return ('%s = "${1:%s}"'):format(name, version)
-		end
-	elseif kind and kind == types.WorkingCrateKind.TABLE then
-		itemDefaults.editRange = col:moved(0, 1):range(line)
-		insertText = function(name, version)
-			return ('%s]\nversion = "${1:%s}"'):format(name, version)
-		end
-	end
-
 	local results = {}
 	for _, r in ipairs(search) do
 		local result = state.search_cache.results[r]
@@ -137,7 +125,7 @@ local function complete_packages(prefix, col, line, kind)
 			label = result.name,
 			kind = VALUE_KIND,
 			detail = result.description,
-			textEditText = insertText(result.name, result.newest_version),
+			textEditText = insertText(result.name),
 		})
 	end
 

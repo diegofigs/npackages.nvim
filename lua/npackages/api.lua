@@ -342,7 +342,7 @@ end
 
 ---@param json_str string
 ---@return PackageMetadata|nil
-function M.parse_crate(json_str)
+function M.parse_package(json_str)
 	local json = parse_json(json_str)
 	if not json then
 		return nil
@@ -407,7 +407,7 @@ local function fetch_crate(name, callbacks)
 		---@type PackageMetadata|nil
 		local crate
 		if not cancelled and json_str then
-			local ok, c = pcall(M.parse_crate, json_str)
+			local ok, c = pcall(M.parse_package, json_str)
 			if ok then
 				crate = c
 			end

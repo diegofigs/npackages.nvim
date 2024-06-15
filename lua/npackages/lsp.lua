@@ -19,17 +19,12 @@ local function reuse_client(client, config)
 end
 
 function M.start()
-	local NPACKAGES = "npackages"
-
 	local commands = {
 		---@param cmd lsp.Command
-		---@param ctx lsp.HandlerContext
-		[NPACKAGES] = function(cmd, ctx)
-			local action = cmd.arguments[1]
-			if action and type(action) == "function" then
-				vim.api.nvim_buf_call(ctx.bufnr, action)
-			else
-				logger.info("Action not available")
+		open_url = function(cmd)
+			local url = cmd.arguments[1]
+			if url and type(url) == "string" then
+				util.open_url(url)
 			end
 		end,
 	}

@@ -7,49 +7,6 @@ local NpackagesDiagnosticKind = analyzer.NpackagesDiagnosticKind
 
 local M = {}
 
-------@param params lsp.CodeActionParams
----function M.open_homepage(params)
----	-- local buf = util.current_buf()
----	local line = params.range.start.line
----	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
----	local _, crate = next(packages)
----	if crate then
----		local crate_info = state.api_cache[crate:package()]
----		if crate_info and crate_info.homepage then
----			util.open_url(crate_info.homepage)
----		else
----			logger.info(string.format("The crate '%s' has no homepage specified", crate:package()))
----		end
----	end
----end
----
-------@param params lsp.CodeActionParams
----function M.open_repository(params)
----	-- local buf = util.current_buf()
----	local line = params.range.start.line
----	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
----	local _, crate = next(packages)
----	if crate then
----		local crate_info = state.api_cache[crate:package()]
----		if crate_info and crate_info.repository then
----			util.open_url(crate_info.repository)
----		else
----			logger.info(string.format("The crate '%s' has no repository specified", crate:package()))
----		end
----	end
----end
-
----@param params lsp.CodeActionParams
-function M.open_npmjs(params)
-	-- local buf = util.current_buf()
-	local line = params.range.start.line
-	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
-	local _, crate = next(packages)
-	if crate then
-		util.open_url(util.package_url(crate:package()))
-	end
-end
-
 ---@param uri lsp.DocumentUri
 ---@param kind lsp.CodeActionKind
 ---@param title string
@@ -162,23 +119,42 @@ function M.get(params)
 	end
 
 	if line_pkg then
+		local info = state.api_cache[line_pkg:package()]
 		---@type lsp.CodeAction
-		local cmd = {
-			title = "Open npmjs.org",
-			---@type lsp.CodeActionKind
-			kind = "refactor.rewrite",
-			---@type lsp.Command
+		local repo_cmd = {
+			title = "Open homepage",
+			kind = "",
 			command = {
-				title = "Open npmjs.org",
-				command = "npackages",
-				arguments = {
-					function()
-						M.open_npmjs(params)
-					end,
-				},
+				title = "Open url",
+				command = "open_url",
+				arguments = { info.homepage },
 			},
 		}
-		table.insert(actions, cmd)
+		table.insert(actions, repo_cmd)
+
+		---@type lsp.CodeAction
+		local homepage_cmd = {
+			title = "Open repository",
+			kind = "",
+			command = {
+				title = "Open url",
+				command = "open_url",
+				arguments = { info.repository },
+			},
+		}
+		table.insert(actions, homepage_cmd)
+
+		---@type lsp.CodeAction
+		local npmjs_cmd = {
+			title = "Open npmjs.org",
+			kind = "",
+			command = {
+				title = "Open url",
+				command = "open_url",
+				arguments = { util.package_url(line_pkg:package()) },
+			},
+		}
+		table.insert(actions, npmjs_cmd)
 	end
 
 	return actions

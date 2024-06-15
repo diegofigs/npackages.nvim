@@ -29,7 +29,7 @@ M.reload_deps = async.wrap(function(package_name, versions, version)
 			-- update crate in all dependency sections
 			for _, pkg in pairs(cache.packages) do
 				if pkg:package() == package_name then
-					local m, p, y = util.get_newest(versions, pkg:vers_reqs())
+					local m, p, y = analyzer.get_newest(versions, pkg:vers_reqs())
 					local match = m or p or y
 
 					if pkg.vers and match == version then

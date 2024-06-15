@@ -65,10 +65,6 @@ local sub_commands = {
 	{ "install", install },
 	{ "change_version", change_version },
 
-	-- { "open_homepage", actions.open_homepage },
-	-- { "open_repository", actions.open_repository },
-	-- { "open_npmjsorg", actions.open_npmjs() },
-
 	{ "hover_available", hover.available },
 	{ "hover", hover.show },
 	{ "hover_package", hover.show_package },

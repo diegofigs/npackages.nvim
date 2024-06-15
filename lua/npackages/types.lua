@@ -1,59 +1,5 @@
 local M = {}
 
----@enum Cond
-M.Cond = {
-	EQ = 1,
-	LT = 2,
-	LE = 3,
-	GT = 4,
-	GE = 5,
-	CR = 6,
-	TL = 7,
-	WL = 8,
-	BL = 9,
-}
-
----@class SemVer
----@field major integer|nil
----@field minor integer|nil
----@field patch integer|nil
----@field pre string|nil
----@field meta string|nil
-local SemVer = {}
-M.SemVer = SemVer
-
----@param obj SemVer
----@return SemVer
-function SemVer.new(obj)
-	return setmetatable(obj, { __index = SemVer })
-end
-
----@return string
-function SemVer:display()
-	local text = ""
-	if self.major then
-		text = text .. self.major
-	end
-
-	if self.minor then
-		text = text .. "." .. self.minor
-	end
-
-	if self.patch then
-		text = text .. "." .. self.patch
-	end
-
-	if self.pre then
-		text = text .. "-" .. self.pre
-	end
-
-	if self.meta then
-		text = text .. "+" .. self.meta
-	end
-
-	return text
-end
-
 ---@class Span
 ---@field s integer -- 0-indexed inclusive
 ---@field e integer -- 0-indexed exclusive
@@ -122,17 +68,5 @@ function Span:range(line)
 		},
 	}
 end
-
----@class WorkingCrate
----@field name string
----@field line integer
----@field col Span
----@field kind WorkingCrateKind
-
----@enum WorkingCrateKind
-M.WorkingCrateKind = {
-	INLINE = 1,
-	TABLE = 2,
-}
 
 return M
