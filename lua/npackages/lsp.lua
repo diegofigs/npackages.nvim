@@ -29,6 +29,12 @@ function M.start()
 		end,
 	}
 
+	local init_options = {
+		codeAction = state.cfg.lsp.actions,
+		completion = state.cfg.lsp.completion,
+		hover = state.cfg.lsp.hover,
+	}
+
 	local client_id = vim.lsp.start({
 		name = state.cfg.lsp.name,
 		cmd = server(),
@@ -36,6 +42,7 @@ function M.start()
 		filetypes = { "json" },
 		autostart = state.cfg.autoload,
 		commands = commands,
+		init_options = init_options,
 		on_init = function(client, _)
 			lsp_state.session.client_id = client.id
 		end,

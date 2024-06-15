@@ -445,19 +445,19 @@ entry(schema_diagnostic, {
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_novers",
+	name = "package_novers",
 	type = STRING_TYPE,
 	default = "Missing version requirement",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_error_fetching",
+	name = "package_error_fetching",
 	type = STRING_TYPE,
 	default = "Error fetching package",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_name_case",
+	name = "package_name_case",
 	type = STRING_TYPE,
 	default = "Incorrect package name casing",
 	hidden = true,

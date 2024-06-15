@@ -1,6 +1,4 @@
-local async = require("npackages.async")
 local state = require("npackages.lsp.state")
-local plugin = require("npackages.state")
 local core = require("npackages.lsp.core")
 
 local textDocument = {}
@@ -12,11 +10,11 @@ function textDocument.didOpen(params, callback)
 	state.documents[doc.uri] = doc
 
 	core.update(doc.uri)
-	if plugin.cfg.autoupdate then
-		core.inner_throttled_update = async.throttle(function()
-			core.update(doc.uri)
-		end, plugin.cfg.autoupdate_throttle)
-	end
+	-- if plugin.cfg.autoupdate then
+	-- 	core.inner_throttled_update = async.throttle(function()
+	-- 		core.update(doc.uri)
+	-- 	end, plugin.cfg.autoupdate_throttle)
+	-- end
 
 	callback()
 end
@@ -29,8 +27,8 @@ function textDocument.didChange(params, callback)
 		state.documents[doc.uri].text = change.text
 	end
 
-	-- core.update(doc.uri)
-	core.throttled_update(vim.uri_to_bufnr(doc.uri), false)
+	core.update(doc.uri)
+	-- core.throttled_update(vim.uri_to_bufnr(doc.uri), false)
 
 	callback()
 end

@@ -1,5 +1,4 @@
 local state = require("npackages.lsp.state")
-local plugin = require("npackages.state")
 local get_dependency_name_from_line = require("npackages.util.get_dependency_name_from_line")
 local util = require("npackages.util")
 
@@ -14,6 +13,15 @@ local function kw_to_text(items)
 	return hl_text
 end
 
+local text = {
+	created_label = " created        ",
+	updated_label = " updated        ",
+	homepage_label = " homepage       ",
+	repository_label = " repository     ",
+	registry_label = " npmjs.com      ",
+	keywords_label = " keywords       ",
+}
+
 ---@param params lsp.HoverParams
 ---@return lsp.Hover?
 function M.hover(params)
@@ -27,8 +35,7 @@ function M.hover(params)
 	if package_name then
 		local pkg = state.api_cache[package_name]
 
-		local title = "# " .. string.format(plugin.cfg.popup.text.title, pkg.name)
-		local text = plugin.cfg.popup.text
+		local title = "# " .. string.format(text.title, pkg.name)
 		local hover_text = title .. "\n"
 
 		if pkg.description then
@@ -36,20 +43,21 @@ function M.hover(params)
 			local desc_lines = vim.split(desc, "\n")
 			for _, l in ipairs(desc_lines) do
 				if l ~= "" then
-					hover_text = hover_text .. "\n" .. string.format(text.description, l)
+					hover_text = hover_text .. "\n" .. string.format("%s", l)
 				end
 			end
 			hover_text = hover_text .. "\n"
 		end
 
+		local date_format = "%Y-%m-%d"
 		if pkg.created then
 			hover_text = hover_text .. "\n## " .. text.created_label
-			hover_text = hover_text .. " " .. string.format(text.created, pkg.created:display(plugin.cfg.date_format))
+			hover_text = hover_text .. " " .. string.format("%s", pkg.created:display(date_format))
 		end
 
 		if pkg.updated then
 			hover_text = hover_text .. "\n## " .. text.updated_label
-			hover_text = hover_text .. " " .. string.format(text.updated, pkg.updated:display(plugin.cfg.date_format))
+			hover_text = hover_text .. " " .. string.format("%s", pkg.updated:display(date_format))
 		end
 
 		if pkg.homepage then
@@ -62,7 +70,7 @@ function M.hover(params)
 			hover_text = hover_text .. " " .. string.format("[%s](%s)", pkg.repository, pkg.repository)
 		end
 
-		hover_text = hover_text .. "\n## " .. text.crates_io_label
+		hover_text = hover_text .. "\n## " .. text.registry_label
 		local pkg_url = util.package_url(pkg.name)
 		hover_text = hover_text .. " " .. string.format("[%s](%s)", pkg_url, pkg_url)
 

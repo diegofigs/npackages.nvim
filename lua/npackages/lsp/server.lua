@@ -3,35 +3,35 @@ local completion = require("npackages.lsp.completion")
 local textDocument = require("npackages.lsp.textDocument")
 local hover = require("npackages.lsp.hover")
 local logger = require("npackages.logger")
-local plugin = require("npackages.state")
 local state = require("npackages.lsp.state")
 local diagnostic = require("npackages.lsp.diagnostic")
-
----@type lsp.ServerCapabilities
-local server_capabilities = {
-	textDocumentSync = {
-		change = 1,
-		openClose = true,
-		save = false, -- TODO: enable textDocument/didSave
-	},
-	codeActionProvider = plugin.cfg.lsp.actions,
-	completionProvider = (plugin.cfg.lsp.completion or {}) and {
-		triggerCharacters = completion.trigger_characters,
-	},
-	hoverProvider = plugin.cfg.lsp.hover,
-	diagnosticProvider = {
-		workDoneProgress = true,
-		workspaceDiagnostics = false,
-		interFileDependencies = false,
-	},
-}
 
 local handlers = {
 	---@param method string
 	---@param params lsp.InitializeParams
 	---@param callback fun(err: nil, result: lsp.InitializeResult)
 	[vim.lsp.protocol.Methods.initialize] = function(method, params, callback)
+		local opts = params.initializationOptions or {}
+		---@type lsp.ServerCapabilities
+		local server_capabilities = {
+			textDocumentSync = {
+				change = 1,
+				openClose = true,
+				save = false, -- TODO: enable textDocument/didSave
+			},
+			codeActionProvider = opts.codeAction or true,
+			completionProvider = (opts.completion or nil) and {
+				triggerCharacters = completion.trigger_characters,
+			},
+			hoverProvider = opts.hover or true,
+			diagnosticProvider = {
+				workDoneProgress = true,
+				workspaceDiagnostics = false,
+				interFileDependencies = false,
+			},
+		}
 		callback(nil, {
+
 			capabilities = server_capabilities,
 			serverInfo = {
 				name = "npackages_ls",

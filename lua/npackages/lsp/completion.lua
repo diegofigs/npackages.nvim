@@ -1,6 +1,5 @@
 local api = require("npackages.api")
 local async = require("npackages.async")
-local plugin = require("npackages.state")
 local core = require("npackages.lsp.core")
 local state = require("npackages.lsp.state")
 local types = require("npackages.types")
@@ -37,7 +36,7 @@ local VALUE_KIND = 12
 
 ---@param pkg JsonPackage
 ---@param versions ApiVersion[]
----@return lsp.CompletionList?
+---@return lsp.CompletionList
 local function complete_versions(pkg, versions)
 	local items = {}
 
@@ -48,23 +47,13 @@ local function complete_versions(pkg, versions)
 			kind = VALUE_KIND,
 			sortText = string.format("%04d", i),
 		}
-		if plugin.cfg.completion.insert_closing_quote then
-			if pkg.vers and not pkg.vers.quote.e then
-				r.insertText = v.num .. pkg.vers.quote.s
-			end
+		if pkg.vers and not pkg.vers.quote.e then
+			r.insertText = v.num .. pkg.vers.quote.s
 		end
-		-- if v.yanked then
-		-- 	r.deprecated = true
-		-- 	r.documentation = state.cfg.completion.text.yanked
-		-- elseif v.parsed.pre then
-		-- 	r.documentation = state.cfg.completion.text.prerelease
-		-- end
-		if plugin.cfg.completion.cmp.use_custom_kind then
-			r.cmp = {
-				kind_text = plugin.cfg.completion.cmp.kind_text.version,
-				kind_hl_group = plugin.cfg.completion.cmp.kind_highlight.version,
-			}
-		end
+		r.cmp = {
+			kind_text = "Version",
+			kind_hl_group = "CmpItemKindVersion",
+		}
 
 		table.insert(items, r)
 	end
@@ -80,7 +69,7 @@ end
 ---@param line integer
 ---@return lsp.CompletionList?
 local function complete_packages(prefix, col, line)
-	if #prefix < plugin.cfg.completion.npackages.min_chars then
+	if #prefix < 3 then
 		return
 	end
 
@@ -165,19 +154,17 @@ local function complete(params)
 		return
 	end
 
-	if plugin.cfg.completion.npackages.enabled then
-		if
-			pkg.pkg and pkg.pkg.line == line and pkg.pkg.col:moved(0, 1):contains(col)
-			or not pkg.pkg
-				and pkg.explicit_name
-				and pkg.lines.s == line
-				and pkg.explicit_name_col:moved(0, 1):contains(col)
-		then
-			local prefix = pkg.pkg and pkg.pkg.text:sub(1, col - pkg.pkg.col.s)
-				or pkg.explicit_name:sub(1, col - pkg.explicit_name_col.s)
-			local name_col = pkg.pkg and pkg.pkg.col or pkg.explicit_name_col
-			return complete_packages(prefix, name_col, line)
-		end
+	if
+		pkg.pkg and pkg.pkg.line == line and pkg.pkg.col:moved(0, 1):contains(col)
+		or not pkg.pkg
+			and pkg.explicit_name
+			and pkg.lines.s == line
+			and pkg.explicit_name_col:moved(0, 1):contains(col)
+	then
+		local prefix = pkg.pkg and pkg.pkg.text:sub(1, col - pkg.pkg.col.s)
+			or pkg.explicit_name:sub(1, col - pkg.explicit_name_col.s)
+		local name_col = pkg.pkg and pkg.pkg.col or pkg.explicit_name_col
+		return complete_packages(prefix, name_col, line)
 	end
 
 	local api_package = state.api_cache[pkg:package()]

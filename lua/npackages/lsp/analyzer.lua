@@ -1,5 +1,4 @@
 local semver = require("npackages.semver")
-local plugin = require("npackages.state")
 local scanner = require("npackages.lsp.scanner")
 local DepKind = scanner.DepKind
 
@@ -15,17 +14,26 @@ M.DiagnosticCodes = {
 	SECTION_INVALID = "section_invalid",
 	SECTION_DUP = "section_dup",
 	PACKAGE_DUP = "package_dup",
-	PACKAGE_NOVERS = "crate_novers",
-	PACKAGE_ERROR_FETCHING = "crate_error_fetching",
-	CRATE_NAME_CASE = "crate_name_case",
+	PACKAGE_NOVERS = "package_novers",
+	PACKAGE_ERROR_FETCHING = "package_error_fetching",
+	PACKAGE_NAME_CASE = "package_name_case",
 	VERS_NOMATCH = "vers_nomatch",
-	VERS_YANKED = "vers_yanked",
 	VERS_PRE = "vers_pre",
 	-- warning
 	VERS_UPGRADE = "vers_upgrade",
 	-- hint
 	SECTION_DUP_ORIG = "section_dup_orig",
 	PACKAGE_DUP_ORIG = "package_dup_orig",
+	-- reverse lookup
+	section_invalid = "Invalid dependency section",
+	section_dup = "Duplicate dependency section",
+	package_dup = "Duplicate package",
+	package_novers = "Missing version requirement",
+	package_error_fetching = "Error fetching package",
+	package_name_case = "Incorrect package name casing",
+	vers_nomatch = "Requirement doesn't match a version",
+	vers_pre = "Requirement only matches a pre-release version\nIf you want to use the pre-release package, it needs to be specified explicitly",
+	vers_upgrade = "Upgrade available",
 }
 
 ---NOTE: Used to index the user configuration, so keys have to be in sync
@@ -54,7 +62,7 @@ local function to_section_diagnostic(section, code, severity, data)
 			start = { line = section.lines.s, character = section.name_col.s },
 			["end"] = { line = section.lines.e - 1, character = section.name_col.e },
 		},
-		message = plugin.cfg.diagnostic[code],
+		message = M.DiagnosticCodes[code],
 		code = code,
 		severity = severity,
 		data = data,
@@ -75,7 +83,7 @@ local function to_package_diagnostic(pkg, code, severity, scope, data)
 			start = { line = pkg.lines.s, character = pkg.explicit_name_col.s },
 			["end"] = { line = pkg.lines.e - 1, character = pkg.explicit_name_col.e },
 		},
-		message = plugin.cfg.diagnostic[code],
+		message = M.DiagnosticCodes[code],
 		code = code,
 		severity = severity,
 		data = data,
@@ -181,7 +189,7 @@ function M.analyze_package_metadata(package, api_package)
 					diagnostics,
 					to_package_diagnostic(
 						package,
-						M.DiagnosticCodes.CRATE_NAME_CASE,
+						M.DiagnosticCodes.PACKAGE_NAME_CASE,
 						vim.diagnostic.severity.ERROR,
 						nil,
 						{ crate = package, crate_name = api_package.name }
@@ -211,17 +219,15 @@ function M.analyze_package_metadata(package, api_package)
 					end
 				end
 
-				if plugin.cfg.enable_update_available_warning then
-					table.insert(
-						diagnostics,
-						to_package_diagnostic(
-							package,
-							M.DiagnosticCodes.VERS_UPGRADE,
-							vim.diagnostic.severity.WARN,
-							PackageScope.VERS
-						)
+				table.insert(
+					diagnostics,
+					to_package_diagnostic(
+						package,
+						M.DiagnosticCodes.VERS_UPGRADE,
+						vim.diagnostic.severity.WARN,
+						PackageScope.VERS
 					)
-				end
+				)
 
 				if match then
 					-- found a match
@@ -234,18 +240,6 @@ function M.analyze_package_metadata(package, api_package)
 						to_package_diagnostic(
 							package,
 							M.DiagnosticCodes.VERS_PRE,
-							vim.diagnostic.severity.ERROR,
-							PackageScope.VERS
-						)
-					)
-				elseif match_yanked then
-					-- found a yanked match
-					info.match_kind = M.MatchKind.YANKED
-					table.insert(
-						diagnostics,
-						to_package_diagnostic(
-							package,
-							M.DiagnosticCodes.VERS_YANKED,
 							vim.diagnostic.severity.ERROR,
 							PackageScope.VERS
 						)
@@ -424,7 +418,7 @@ end
 ---@param alt boolean|nil
 ---@return string
 function M.version_text(package, version, alt)
-	local smart = alt ~= plugin.cfg.smart_insert
+	local smart = alt ~= true
 	if smart then
 		return M.smart_version_text(package, version)
 	else
