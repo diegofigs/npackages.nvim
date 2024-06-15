@@ -14,6 +14,7 @@ local function kw_to_text(items)
 end
 
 local text = {
+	title = " %s",
 	created_label = " created        ",
 	updated_label = " updated        ",
 	homepage_label = " homepage       ",

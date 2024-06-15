@@ -1,4 +1,4 @@
-local semver = require("npackages.semver")
+local semver = require("npackages.lib.semver")
 
 local function match(version, requirement)
 	local v = semver.parse_version(version)

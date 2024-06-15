@@ -1,4 +1,4 @@
-local semver = require("npackages.semver")
+local semver = require("npackages.lib.semver")
 local types = require("npackages.types")
 local Span = types.Span
 

@@ -1,5 +1,5 @@
-local api = require("npackages.api")
-local async = require("npackages.async")
+local api = require("npackages.lib.api")
+local async = require("npackages.lib.async")
 local core = require("npackages.lsp.core")
 local state = require("npackages.lsp.state")
 local util = require("npackages.util")

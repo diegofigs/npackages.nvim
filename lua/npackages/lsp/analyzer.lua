@@ -1,4 +1,4 @@
-local semver = require("npackages.semver")
+local semver = require("npackages.lib.semver")
 local scanner = require("npackages.lsp.scanner")
 local DepKind = scanner.DepKind
 

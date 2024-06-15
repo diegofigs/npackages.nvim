@@ -1,7 +1,7 @@
-local api = require("npackages.api")
-local time = require("npackages.time")
+local api = require("npackages.lib.api")
+local time = require("npackages.lib.time")
 local DateTime = time.DateTime
-local semver = require("npackages.semver")
+local semver = require("npackages.lib.semver")
 local SemVer = semver.SemVer
 
 describe("npackages.api", function()

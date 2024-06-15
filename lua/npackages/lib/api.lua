@@ -1,6 +1,6 @@
-local semver = require("npackages.semver")
+local semver = require("npackages.lib.semver")
 local state = require("npackages.state")
-local time = require("npackages.time")
+local time = require("npackages.lib.time")
 local json = require("npackages.util.json")
 local DateTime = time.DateTime
 
