@@ -43,7 +43,8 @@ local handlers = {
 	---@param params lsp.CodeActionParams
 	---@param callback fun(err: nil, actions: lsp.CodeAction[]|nil)
 	[vim.lsp.protocol.Methods.textDocument_codeAction] = function(method, params, callback)
-		callback(nil, codeAction.get(params))
+		local result = codeAction.get(params)
+		callback(nil, result)
 	end,
 
 	---@param method string
@@ -59,7 +60,8 @@ local handlers = {
 	---@param params lsp.HoverParams
 	---@param callback fun(err: nil, result: lsp.Hover|nil)
 	[vim.lsp.protocol.Methods.textDocument_hover] = function(method, params, callback)
-		callback(nil, hover.hover(params))
+		local result = hover.hover(params)
+		callback(nil, result)
 	end,
 
 	---@param method string
@@ -177,8 +179,6 @@ local function server(opts)
 			if handler then
 				handler(params, function()
 					local doc = params.textDocument
-					-- local buf = vim.uri_to_bufnr(doc.uri)
-
 					local client_id = state.session.client_id
 
 					if client_id then

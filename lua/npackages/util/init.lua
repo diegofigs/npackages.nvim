@@ -34,26 +34,6 @@ function M.selected_lines()
 end
 
 ---@param uri lsp.DocumentUri
-function M.get_lsp_info(uri)
-	local cache = lsp_state.doc_cache[uri]
-	return cache and cache.info
-end
-
----@param uri lsp.DocumentUri
-function M.get_lsp_diagnostics(uri)
-	local cache = lsp_state.doc_cache[uri]
-	return cache and cache.diagnostics
-end
-
----@param uri lsp.DocumentUri
----@param key string
----@return PackageInfo|nil
-function M.get_lsp_package_info(uri, key)
-	local info = M.get_lsp_info(uri)
-	return info and info[key]
-end
-
----@param uri lsp.DocumentUri
 ---@param lines Span
 ---@return table<string,JsonPackage>
 function M.get_lsp_packages(uri, lines)

@@ -1,25 +1,8 @@
 local api = require("npackages.api")
 local async = require("npackages.async")
-local plugin = require("npackages.state")
 local core = require("npackages.lsp.core")
 local state = require("npackages.lsp.state")
 local util = require("npackages.util")
-
----@param d NpackagesDiagnostic
----@return lsp.Diagnostic
-local function to_lsp_diagnostic(d)
-	---@type lsp.Diagnostic
-	return {
-		range = {
-			start = { line = d.lnum, character = d.col },
-			["end"] = { line = d.end_lnum, character = d.end_col },
-		},
-		severity = d.severity,
-		code = d.kind,
-		message = plugin.cfg.diagnostic[d.kind],
-		source = "npackages",
-	}
-end
 
 local function tablelength(T)
 	local count = 0
@@ -90,7 +73,7 @@ local function diagnose(params)
 			---@type lsp.WorkDoneProgressReport
 			value = {
 				kind = "report",
-				message = string.format("indexing %s/%s", pkg_count, pkg_total),
+				message = string.format("%s/%s packages", pkg_count, pkg_total),
 			},
 		}
 		state.session.dispatchers.notification(vim.lsp.protocol.Methods.dollar_progress, progress_params)
@@ -100,11 +83,7 @@ local function diagnose(params)
 	local cache = state.doc_cache[doc.uri]
 
 	local prev_diagnostics = state.diagnostics[doc.uri]
-	---@type lsp.Diagnostic[]
-	local diagnostics = {}
-	for _, d in ipairs(cache.diagnostics) do
-		table.insert(diagnostics, to_lsp_diagnostic(d))
-	end
+	local diagnostics = cache.diagnostics
 	state.diagnostics[doc.uri] = diagnostics
 
 	local is_unchanged = vim.deep_equal(prev_diagnostics, diagnostics)

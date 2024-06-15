@@ -274,7 +274,7 @@ end
 ---@param line string
 ---@param line_nr integer
 ---@return JsonPackage|nil
-function M.parse_inline_package(line, line_nr)
+function M.scan_line(line, line_nr)
 	do
 		local name_s, name, name_e, quote_s, str_s, text, str_e, quote_e =
 			line:match([[^%s*()%"([^%s]+)%"()%s*:%s*(["'])()([^"']*)()(["']?).*$]])
@@ -299,18 +299,11 @@ function M.parse_inline_package(line, line_nr)
 	return nil
 end
 
----@param line string
----@return string
-function M.trim_comments(line)
-	local uncommented = line:match("^([^#]*)#.*$")
-	return uncommented or line
-end
-
 ---comment
 ---@param lines string[]
 ---@return JsonSection[]
 ---@return JsonPackage[]
-function M.parse_document_text(lines)
+function M.scan_package_doc(lines)
 	local sections = {}
 	local packages = {}
 
@@ -343,10 +336,10 @@ function M.parse_document_text(lines)
 
 		--- 2. package line
 		if dep_section and package_version then
-			local crate = M.parse_inline_package(line, line_nr)
-			if crate then
-				crate.section = dep_section
-				table.insert(packages, Package.new(crate))
+			local pkg = M.scan_line(line, line_nr)
+			if pkg then
+				pkg.section = dep_section
+				table.insert(packages, Package.new(pkg))
 			end
 		end
 		--- 3. section closure

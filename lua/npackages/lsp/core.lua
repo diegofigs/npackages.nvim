@@ -24,59 +24,54 @@ M.reload_deps = async.wrap(function(package_name, versions, version)
 	if deps then
 		version.deps = deps
 
-		-- for _, cache in pairs(state.doc_cache) do
-		-- 	-- update crate in all dependency sections
-		-- 	for _, pkg in pairs(cache.packages) do
-		-- 		if pkg:package() == package_name then
-		-- 			local m, p, y = analyzer.get_newest(versions, pkg:vers_reqs())
-		-- 			local match = m or p or y
-		--
-		-- 			if pkg.vers and match == version then
-		-- 				local diagnostics = analyzer.process_package_deps(pkg, version, deps)
-		-- 				ui.display_diagnostics(b, diagnostics)
-		-- 			end
-		-- 		end
-		-- 	end
-		-- end
+		for _, cache in pairs(state.doc_cache) do
+			-- INFO: update package in all dependency sections
+			for _, pkg in pairs(cache.packages) do
+				if pkg:package() == package_name then
+					local m, p, y = analyzer.get_newest(versions, pkg:vers_reqs())
+					local match = m or p or y
+
+					if pkg.vers and match == version then
+						local diagnostics = analyzer.analyze_package_deps(pkg, version, deps)
+						vim.list_extend(cache.diagnostics, diagnostics)
+					end
+				end
+			end
+		end
 	end
 end)
 
 ---@type fun(package_name: string)
 M.reload_package = async.wrap(function(package_name)
-	local crate, cancelled = api.fetch_crate(package_name)
-	local versions = crate and crate.versions
+	local pkg_metadata, cancelled = api.fetch_crate(package_name)
+	local versions = pkg_metadata and pkg_metadata.versions
 	if cancelled then
 		return
 	end
 
 	---@cast versions -nil
-	if crate and next(versions) then
-		state.api_cache[crate.name] = crate
+	if pkg_metadata and next(versions) then
+		state.api_cache[pkg_metadata.name] = pkg_metadata
 	end
 
 	for uri, cache in pairs(state.doc_cache) do
-		local b = vim.uri_to_bufnr(uri)
-		-- update package in all dependency sections
+		local buf = vim.uri_to_bufnr(uri)
+		-- INFO: update package in all dependency sections
 		for k, pkg in pairs(cache.packages) do
-			if pkg.dep_kind ~= DepKind.REGISTRY or pkg.registry ~= nil then
-				goto continue
+			if pkg.dep_kind == DepKind.REGISTRY and pkg.registry == nil then
+				if pkg:package() == package_name then
+					local info, diagnostics = analyzer.analyze_package_metadata(pkg, pkg_metadata)
+					cache.info[k] = info
+					vim.list_extend(cache.diagnostics, diagnostics)
+
+					ui.display_package_info(buf, info)
+
+					local version = info.vers_match or info.vers_upgrade
+					if version then
+						M.reload_deps(pkg:package(), versions, version)
+					end
+				end
 			end
-
-			if pkg:package() == package_name then
-				local info, diagnostics = analyzer.process_api_package(pkg, crate)
-				cache.info[k] = info
-				vim.list_extend(cache.diagnostics, diagnostics)
-
-				ui.display_package_info(b, info, diagnostics)
-
-				-- local version = info.vers_match or info.vers_upgrade
-				-- if version then
-				-- 	-- @cast versions -nil
-				-- 	M.reload_deps(pkg:package(), versions, version)
-				-- end
-			end
-
-			::continue::
 		end
 	end
 end)
@@ -95,49 +90,41 @@ local function update(uri, reload)
 	-- TODO: read file from doc_cache not editor
 	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
-	local sections, packages = scanner.parse_document_text(lines)
-
-	local package_cache, diagnostics = analyzer.process_packages(sections, packages)
+	local sections, packages = scanner.scan_package_doc(lines)
+	local package_set, diagnostics = analyzer.analyze_package_json(sections, packages)
 	local cache = {
-		packages = package_cache,
+		packages = package_set,
 		info = {},
 		diagnostics = diagnostics,
 	}
 	state.doc_cache[uri] = cache
 
 	ui.clear(buf)
-	for cache_key, pkg in pairs(package_cache) do
-		if pkg.dep_kind ~= DepKind.REGISTRY or pkg.registry ~= nil then
-			goto continue
-		end
-		local api_package = state.api_cache[pkg:package()]
-		local versions = api_package and api_package.versions
+	for cache_key, pkg in pairs(package_set) do
+		if pkg.dep_kind == DepKind.REGISTRY and pkg.registry == nil then
+			local api_package = state.api_cache[pkg:package()]
+			local versions = api_package and api_package.versions
 
-		if not reload and api_package then
-			local info, p_diagnostics = analyzer.process_api_package(pkg, api_package)
-			cache.info[cache_key] = info
-			vim.list_extend(cache.diagnostics, p_diagnostics)
+			if not reload and api_package then
+				local info, p_diagnostics = analyzer.analyze_package_metadata(pkg, api_package)
+				cache.info[cache_key] = info
+				vim.list_extend(cache.diagnostics, p_diagnostics)
 
-			ui.display_package_info(buf, info, p_diagnostics)
+				ui.display_package_info(buf, info)
 
-			local version = info.vers_match or info.vers_upgrade
-			if version then
-				if version.deps then
-					local d_diagnostics = analyzer.process_package_deps(pkg, version, version.deps)
-					vim.list_extend(cache.diagnostics, d_diagnostics)
-				else
-					M.reload_deps(pkg:package(), versions, version)
+				local version = info.vers_match or info.vers_upgrade
+				if version then
+					if version.deps then
+						local d_diagnostics = analyzer.analyze_package_deps(pkg, version, version.deps)
+						vim.list_extend(cache.diagnostics, d_diagnostics)
+					else
+						M.reload_deps(pkg:package(), versions, version)
+					end
 				end
+			else
+				M.reload_package(pkg:package())
 			end
-		else
-			-- if plugin.cfg.loading_indicator then
-			-- 	ui.display_loading(buf, pkg)
-			-- end
-
-			M.reload_package(pkg:package())
 		end
-
-		::continue::
 	end
 
 	local callbacks = M.throttled_updates[buf]

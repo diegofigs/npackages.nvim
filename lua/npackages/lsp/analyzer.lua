@@ -1,40 +1,16 @@
 local semver = require("npackages.semver")
-local state = require("npackages.state")
+local plugin = require("npackages.state")
 local scanner = require("npackages.lsp.scanner")
 local DepKind = scanner.DepKind
 
 local Cond = semver.Cond
 local SemVer = semver.SemVer
 
----@class NpackagesDiagnostic
----@field lnum integer
----@field end_lnum integer
----@field col integer
----@field end_col integer
----@field severity integer
----@field kind NpackagesDiagnosticKind
----@field data table<string,any>|nil
-local NpackagesDiagnostic = {}
-
----@param obj NpackagesDiagnostic
----@return NpackagesDiagnostic
-function NpackagesDiagnostic.new(obj)
-	return setmetatable(obj, { __index = NpackagesDiagnostic })
-end
-
----@param line integer
----@param col integer
----@return boolean
-function NpackagesDiagnostic:contains(line, col)
-	return (self.lnum < line or self.lnum == line and self.col <= col)
-		and (self.end_lnum > line or self.end_lnum == line and self.end_col > col)
-end
-
 local M = {}
 
 ---NOTE: Used to index the user configuration, so keys have to be in sync
----@enum NpackagesDiagnosticKind
-M.NpackagesDiagnosticKind = {
+---@enum DiagnosticCodes
+M.DiagnosticCodes = {
 	-- error
 	SECTION_INVALID = "section_invalid",
 	SECTION_DUP = "section_dup",
@@ -61,76 +37,62 @@ M.MatchKind = {
 	NOMATCH = "nomatch",
 }
 
----@enum SectionScope
-local SectionScope = {
-	HEADER = 1,
-}
-
 ---@enum PackageScope
 local PackageScope = {
 	VERS = 1,
-	DEF = 2,
 }
 
 ---@param section JsonSection
----@param kind NpackagesDiagnosticKind
----@param severity integer
----@param scope SectionScope|nil
+---@param code DiagnosticCodes
+---@param severity lsp.DiagnosticSeverity
 ---@param data table<string,any>|nil
----@return NpackagesDiagnostic
-local function section_diagnostic(section, kind, severity, scope, data)
-	local d = NpackagesDiagnostic.new({
-		lnum = section.lines.s,
-		end_lnum = section.lines.e - 1,
-		col = section.name_col.s,
-		end_col = 999,
+---@return lsp.Diagnostic
+local function to_section_diagnostic(section, code, severity, data)
+	---@type lsp.Diagnostic
+	return {
+		range = {
+			start = { line = section.lines.s, character = section.name_col.s },
+			["end"] = { line = section.lines.e - 1, character = section.name_col.e },
+		},
+		message = plugin.cfg.diagnostic[code],
+		code = code,
 		severity = severity,
-		kind = kind,
 		data = data,
-	})
-
-	if scope == SectionScope.HEADER then
-		d.end_lnum = d.lnum + 1
-	end
-
-	return d
+		source = "npackages_ls",
+	}
 end
 
----@param crate JsonPackage
----@param kind NpackagesDiagnosticKind
+---@param pkg JsonPackage
+---@param code DiagnosticCodes
 ---@param severity integer
 ---@param scope PackageScope|nil
 ---@param data table<string,any>|nil
----@return NpackagesDiagnostic
-local function package_diagnostic(crate, kind, severity, scope, data)
-	local d = NpackagesDiagnostic.new({
-		lnum = crate.lines.s,
-		end_lnum = crate.lines.e - 1,
-		col = crate.explicit_name_col.s,
-		end_col = crate.explicit_name_col.e,
+---@return lsp.Diagnostic[]
+local function to_package_diagnostic(pkg, code, severity, scope, data)
+	---@type lsp.Diagnostic
+	local d = {
+		range = {
+			start = { line = pkg.lines.s, character = pkg.explicit_name_col.s },
+			["end"] = { line = pkg.lines.e - 1, character = pkg.explicit_name_col.e },
+		},
+		message = plugin.cfg.diagnostic[code],
+		code = code,
 		severity = severity,
-		kind = kind,
 		data = data,
-	})
+		source = "npackages_ls",
+	}
 
 	if not scope then
 		return d
 	end
 
 	if scope == PackageScope.VERS then
-		if crate.vers then
-			d.lnum = crate.vers.line
-			d.end_lnum = crate.vers.line
-			d.col = crate.vers.col.s
-			d.end_col = crate.vers.col.e
+		if pkg.vers then
+			d.range.start.line = pkg.vers.line
+			d.range["end"].line = pkg.vers.line
+			d.range.start.character = pkg.vers.col.s
+			d.range["end"].character = pkg.vers.col.e
 		end
-		-- elseif scope == PackageScope.DEF then
-		-- 	if crate.def then
-		-- 		d.lnum = crate.def.line
-		-- 		d.end_lnum = crate.def.line
-		-- 		d.col = crate.def.col.s
-		-- 		d.end_col = crate.def.col.e
-		-- 	end
 	end
 
 	return d
@@ -139,14 +101,14 @@ end
 ---@param sections JsonSection[]
 ---@param packages JsonPackage[]
 ---@return table<string,JsonPackage>
----@return NpackagesDiagnostic[]
-function M.process_packages(sections, packages)
-	---@type NpackagesDiagnostic[]
+---@return lsp.Diagnostic[]
+function M.analyze_package_json(sections, packages)
+	---@type lsp.Diagnostic[]
 	local diagnostics = {}
 	---@type table<string,JsonSection>
-	local s_cache = {}
+	local section_set = {}
 	---@type table<string,JsonPackage>
-	local cache = {}
+	local package_set = {}
 
 	for _, s in ipairs(sections) do
 		local key = s.text:gsub("%s+", "")
@@ -154,52 +116,52 @@ function M.process_packages(sections, packages)
 		if s.invalid then
 			table.insert(
 				diagnostics,
-				section_diagnostic(s, M.NpackagesDiagnosticKind.SECTION_INVALID, vim.diagnostic.severity.WARN)
+				to_section_diagnostic(s, M.DiagnosticCodes.SECTION_INVALID, vim.diagnostic.severity.WARN)
 			)
-		elseif s_cache[key] then
+		elseif section_set[key] then
 			table.insert(
 				diagnostics,
-				section_diagnostic(s_cache[key], M.NpackagesDiagnosticKind.SECTION_DUP, vim.diagnostic.severity.ERROR)
+				to_section_diagnostic(section_set[key], M.DiagnosticCodes.SECTION_DUP, vim.diagnostic.severity.ERROR)
 			)
 			table.insert(
 				diagnostics,
-				section_diagnostic(s, M.NpackagesDiagnosticKind.SECTION_DUP, vim.diagnostic.severity.ERROR)
+				to_section_diagnostic(s, M.DiagnosticCodes.SECTION_DUP, vim.diagnostic.severity.ERROR)
 			)
 		else
-			s_cache[key] = s
+			section_set[key] = s
 		end
 	end
 
 	for _, c in ipairs(packages) do
 		local key = c:cache_key()
-		if c.section.invalid then
-			goto continue
+		if not c.section.invalid then
+			if package_set[key] then
+				table.insert(
+					diagnostics,
+					to_package_diagnostic(
+						package_set[key],
+						M.DiagnosticCodes.PACKAGE_DUP,
+						vim.diagnostic.severity.ERROR
+					)
+				)
+				table.insert(
+					diagnostics,
+					to_package_diagnostic(c, M.DiagnosticCodes.PACKAGE_DUP, vim.diagnostic.severity.ERROR)
+				)
+			else
+				package_set[key] = c
+			end
 		end
-
-		if cache[key] then
-			table.insert(
-				diagnostics,
-				package_diagnostic(cache[key], M.NpackagesDiagnosticKind.PACKAGE_DUP, vim.diagnostic.severity.ERROR)
-			)
-			table.insert(
-				diagnostics,
-				package_diagnostic(c, M.NpackagesDiagnosticKind.PACKAGE_DUP, vim.diagnostic.severity.ERROR)
-			)
-		else
-			cache[key] = c
-		end
-
-		::continue::
 	end
 
-	return cache, diagnostics
+	return package_set, diagnostics
 end
 
 ---@param package JsonPackage
 ---@param api_package PackageMetadata|nil
 ---@return PackageInfo
----@return NpackagesDiagnostic[]
-function M.process_api_package(package, api_package)
+---@return lsp.Diagnostic[]
+function M.analyze_package_metadata(package, api_package)
 	local versions = api_package and api_package.versions
 	local newest, newest_pre = M.get_newest(versions, nil)
 	newest = newest or newest_pre
@@ -217,9 +179,9 @@ function M.process_api_package(package, api_package)
 			if api_package.name ~= package:package() then
 				table.insert(
 					diagnostics,
-					package_diagnostic(
+					to_package_diagnostic(
 						package,
-						M.NpackagesDiagnosticKind.CRATE_NAME_CASE,
+						M.DiagnosticCodes.CRATE_NAME_CASE,
 						vim.diagnostic.severity.ERROR,
 						nil,
 						{ crate = package, crate_name = api_package.name }
@@ -249,12 +211,12 @@ function M.process_api_package(package, api_package)
 					end
 				end
 
-				if state.cfg.enable_update_available_warning then
+				if plugin.cfg.enable_update_available_warning then
 					table.insert(
 						diagnostics,
-						package_diagnostic(
+						to_package_diagnostic(
 							package,
-							M.NpackagesDiagnosticKind.VERS_UPGRADE,
+							M.DiagnosticCodes.VERS_UPGRADE,
 							vim.diagnostic.severity.WARN,
 							PackageScope.VERS
 						)
@@ -269,9 +231,9 @@ function M.process_api_package(package, api_package)
 					info.match_kind = M.MatchKind.PRERELEASE
 					table.insert(
 						diagnostics,
-						package_diagnostic(
+						to_package_diagnostic(
 							package,
-							M.NpackagesDiagnosticKind.VERS_PRE,
+							M.DiagnosticCodes.VERS_PRE,
 							vim.diagnostic.severity.ERROR,
 							PackageScope.VERS
 						)
@@ -281,31 +243,31 @@ function M.process_api_package(package, api_package)
 					info.match_kind = M.MatchKind.YANKED
 					table.insert(
 						diagnostics,
-						package_diagnostic(
+						to_package_diagnostic(
 							package,
-							M.NpackagesDiagnosticKind.VERS_YANKED,
+							M.DiagnosticCodes.VERS_YANKED,
 							vim.diagnostic.severity.ERROR,
 							PackageScope.VERS
 						)
 					)
 				else
 					-- no match found
-					local kind = M.NpackagesDiagnosticKind.VERS_NOMATCH
+					local kind = M.DiagnosticCodes.VERS_NOMATCH
 					if not package.vers then
-						kind = M.NpackagesDiagnosticKind.PACKAGE_NOVERS
+						kind = M.DiagnosticCodes.PACKAGE_NOVERS
 					end
 					table.insert(
 						diagnostics,
-						package_diagnostic(package, kind, vim.diagnostic.severity.ERROR, PackageScope.VERS)
+						to_package_diagnostic(package, kind, vim.diagnostic.severity.ERROR, PackageScope.VERS)
 					)
 				end
 			end
 		else
 			table.insert(
 				diagnostics,
-				package_diagnostic(
+				to_package_diagnostic(
 					package,
-					M.NpackagesDiagnosticKind.PACKAGE_ERROR_FETCHING,
+					M.DiagnosticCodes.PACKAGE_ERROR_FETCHING,
 					vim.diagnostic.severity.ERROR,
 					PackageScope.VERS
 				)
@@ -316,23 +278,18 @@ function M.process_api_package(package, api_package)
 	return info, diagnostics
 end
 
+-- TODO: implement multi-depth dependency analysis
+--
 ---@param package JsonPackage
----@param _ ApiVersion
----@param deps ApiDependency[]
----@return NpackagesDiagnostic[]
-function M.process_package_deps(package, _, deps)
+---@param _version ApiVersion
+---@param _deps ApiDependency[]
+---@return lsp.Diagnostic[]
+function M.analyze_package_deps(package, _version, _deps)
 	if package.path or package.git then
 		return {}
 	end
 
 	local diagnostics = {}
-
-	local valid_feats = {}
-	for _, d in ipairs(deps) do
-		if d.opt then
-			table.insert(valid_feats, d.name)
-		end
-	end
 
 	return diagnostics
 end
@@ -467,7 +424,7 @@ end
 ---@param alt boolean|nil
 ---@return string
 function M.version_text(package, version, alt)
-	local smart = alt ~= state.cfg.smart_insert
+	local smart = alt ~= plugin.cfg.smart_insert
 	if smart then
 		return M.smart_version_text(package, version)
 	else

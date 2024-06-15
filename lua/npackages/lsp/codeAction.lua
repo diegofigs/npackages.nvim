@@ -3,7 +3,7 @@ local types = require("npackages.types")
 local util = require("npackages.util")
 local analyzer = require("npackages.lsp.analyzer")
 local Span = types.Span
-local NpackagesDiagnosticKind = analyzer.NpackagesDiagnosticKind
+local DiagnosticCodes = analyzer.DiagnosticCodes
 
 local M = {}
 
@@ -32,7 +32,7 @@ function M.get(params)
 	local actions = {}
 
 	for _, d in ipairs(params.context.diagnostics) do
-		if d.code == NpackagesDiagnosticKind.SECTION_DUP then
+		if d.code == DiagnosticCodes.SECTION_DUP then
 			local d_range = {
 				start = d.range.start,
 				["end"] = { line = d.range["end"].line + 1, character = d.range.start.character },
@@ -40,7 +40,7 @@ function M.get(params)
 			local text_edit = { range = d_range, newText = "" }
 			table.insert(actions, to_code_action(doc.uri, "quickfix", "Remove duplicate section", { text_edit }))
 		end
-		if d.code == NpackagesDiagnosticKind.SECTION_INVALID then
+		if d.code == DiagnosticCodes.SECTION_INVALID then
 			local d_range = {
 				start = d.range.start,
 				["end"] = { line = d.range["end"].line + 1, character = d.range.start.character },
@@ -48,7 +48,7 @@ function M.get(params)
 			local text_edit = { range = d_range, newText = "" }
 			table.insert(actions, to_code_action(doc.uri, "quickfix", "Remove invalid section", { text_edit }))
 		end
-		if d.code == NpackagesDiagnosticKind.PACKAGE_DUP then
+		if d.code == DiagnosticCodes.PACKAGE_DUP then
 			local d_range = {
 				start = { line = d.range.start.line, character = 0 },
 				["end"] = { line = d.range["end"].line + 1, character = 0 },
@@ -65,7 +65,8 @@ function M.get(params)
 	local diagnostics = state.diagnostics[doc.uri]
 
 	if line_pkg then
-		local info = util.get_lsp_package_info(doc.uri, line_key)
+		local cache = state.doc_cache[doc.uri]
+		local info = cache.info[line_key]
 		if info then
 			for _, d in ipairs(diagnostics) do
 				if d.range.start.line == line and d.range.start.character == range.start.character then
@@ -89,11 +90,12 @@ function M.get(params)
 	---@type lsp.TextEdit[]
 	local upgrade_all_edits = {}
 	for _, d in pairs(diagnostics) do
-		if d.code == NpackagesDiagnosticKind.VERS_UPGRADE then
+		if d.code == DiagnosticCodes.VERS_UPGRADE then
 			local d_packages = util.get_lsp_packages(doc.uri, Span.pos(d.range.start.line))
 			local d_line, d_pkg = next(d_packages)
 			if d_pkg then
-				local info = util.get_lsp_package_info(doc.uri, d_line)
+				local cache = state.doc_cache[doc.uri]
+				local info = cache.info[d_line]
 				if info then
 					if info.vers_update then
 						local version = info.vers_update.parsed:display()

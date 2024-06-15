@@ -1,4 +1,3 @@
-local scanner = require("npackages.lsp.scanner")
 local analyzer = require("npackages.lsp.analyzer")
 local hover = require("npackages.hover.common")
 local state = require("npackages.state")
@@ -50,28 +49,7 @@ local function select_version(ctx, line, alt)
 		return
 	end
 
-	---@type Span
-	local line_span
-	line_span = set_version(ctx.buf, crate, version.parsed, alt)
-
-	-- update only crate version position, not the parsed requirements
-	-- (or any other semantic information), so selecting another version
-	-- with `smart_insert` will behave predictable
-	if crate.syntax == "plain" or crate.syntax == "inline_table" then
-		local line_nr = line_span.s
-		---@type string
-		local text = vim.api.nvim_buf_get_lines(ctx.buf, line_nr, line_nr + 1, false)[1]
-		text = scanner.trim_comments(text)
-
-		local c = scanner.parse_inline_package(text, line_nr)
-		if c and c.vers then
-			crate.vers = crate.vers or c.vers
-			crate.vers.line = line_nr
-			crate.vers.col = c.vers.col
-			crate.vers.decl_col = c.vers.decl_col
-			crate.vers.quote = c.vers.quote
-		end
-	end
+	set_version(ctx.buf, crate, version.parsed, alt)
 
 	if state.cfg.popup.hide_on_select then
 		hover.hide()

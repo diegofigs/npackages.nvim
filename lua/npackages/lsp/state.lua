@@ -19,7 +19,7 @@ local State = {
 ---@class DocCache
 ---@field packages table<string,JsonPackage>
 ---@field info table<string,PackageInfo>
----@field diagnostics NpackagesDiagnostic[]
+---@field diagnostics lsp.Diagnostic[]
 
 ---@class PackageInfo
 ---@field lines Span
