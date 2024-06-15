@@ -1,5 +1,5 @@
 local logger = require("npackages.logger")
-local safe_call = require("npackages.util.safe_call")
+local json = require("npackages.util.json")
 
 ---@class JobProps
 ---@field command string - string command to run
@@ -14,7 +14,7 @@ local safe_call = require("npackages.util.safe_call")
 return function(props)
 	local value = ""
 
-	safe_call(props.on_start)
+	pcall(props.on_start)
 
 	local function on_error()
 		logger.error("Error running " .. props.command .. ". Try running manually.")
@@ -47,7 +47,7 @@ return function(props)
 			end
 
 			if props.json then
-				local ok, json_value = pcall(vim.json.decode, value)
+				local ok, json_value = pcall(json.decode, value)
 
 				if ok then
 					props.on_success(json_value)

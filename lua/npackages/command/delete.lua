@@ -1,10 +1,10 @@
 local npm = require("npackages.npm")
-local get_dependency_name_from_current_line = require("npackages.util.get_dependency_name_from_current_line")
 local job = require("npackages.util.job")
 local loading = require("npackages.ui.loading")
-local reload = require("npackages.util.reload")
+local reload = require("npackages.ui.reload")
 local state = require("npackages.state")
 local util = require("npackages.util")
+local scanner = require("npackages.lsp.scanner")
 
 --- Returns the delete command based on package manager
 ---@param dependency_name string - dependency for which to get the command
@@ -23,7 +23,9 @@ end
 --- Runs the delete action
 -- @return nil
 return function()
-	local dependency_name = get_dependency_name_from_current_line()
+	local current_line = vim.fn.getline(".")
+
+	local dependency_name = scanner.get_dependency_name_from_line(current_line)
 
 	if dependency_name == nil then
 		return

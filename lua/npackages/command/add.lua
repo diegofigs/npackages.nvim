@@ -1,6 +1,6 @@
 local npm = require("npackages.npm")
 local job = require("npackages.util.job")
-local reload = require("npackages.util.reload")
+local reload = require("npackages.ui.reload")
 local state = require("npackages.state")
 local util = require("npackages.util")
 local loading = require("npackages.ui.loading")

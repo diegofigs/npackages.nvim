@@ -1,6 +1,7 @@
 local semver = require("npackages.semver")
 local state = require("npackages.state")
 local time = require("npackages.time")
+local json = require("npackages.util.json")
 local DateTime = time.DateTime
 
 local M = {
@@ -106,28 +107,6 @@ local DEPENDENCY_KIND_MAP = {
 	["dev"] = ApiDependencyKind.DEV,
 	-- ["build"] = ApiDependencyKind.BUILD,
 }
-
----@class vim.json.DecodeOpts
----@class DecodeOpts
----@field luanil Luanil
-
----@class Luanil
----@field object boolean
----@field array boolean
-
----@type vim.json.DecodeOpts
-local JSON_DECODE_OPTS = { luanil = { object = true, array = true } }
-
----comment
----@param json_str string
----@return table|nil
-local function parse_json(json_str)
-	---@type any
-	local json = vim.json.decode(json_str, JSON_DECODE_OPTS)
-	if json and type(json) == "table" then
-		return json
-	end
-end
 
 ---@param url string
 ---@param on_exit fun(data: string|nil, cancelled: boolean)
@@ -258,15 +237,15 @@ end
 ---@param json_str string
 ---@return ApiPackageSummary[]?
 function M.parse_search(json_str)
-	local json = parse_json(json_str)
-	if not (json and json.objects) then
+	local decoded = json.decode(json_str)
+	if not (decoded and decoded.objects) then
 		return
 	end
 
 	---@type ApiPackageSummary[]
 	local search = {}
 	---@diagnostic disable-next-line: no-unknown
-	for _, c in ipairs(json.objects) do
+	for _, c in ipairs(decoded.objects) do
 		---@type ApiPackageSummary
 		local result = {
 			name = c.package.name,
@@ -343,13 +322,13 @@ end
 ---@param json_str string
 ---@return PackageMetadata|nil
 function M.parse_package(json_str)
-	local json = parse_json(json_str)
-	if not json then
+	local decoded = json.decode(json_str)
+	if not decoded then
 		return nil
 	end
 
 	---@type table<string,any>
-	local p = json
+	local p = decoded
 
 	---@type PackageMetadata
 	local crate = {
@@ -367,12 +346,12 @@ function M.parse_package(json_str)
 	}
 
 	---@diagnostic disable-next-line: no-unknown
-	for _, v in pairs(json.versions) do
+	for _, v in pairs(decoded.versions) do
 		---@type ApiVersion
 		local version = {
 			num = v.version,
 			parsed = semver.parse_version(v.version),
-			created = assert(DateTime.parse_iso_8601(json.time[v.version])),
+			created = assert(DateTime.parse_iso_8601(decoded.time[v.version])),
 		}
 
 		table.insert(crate.versions, version)
@@ -448,15 +427,15 @@ end
 ---@param json_str string
 ---@return ApiDependency[]|nil
 function M.parse_deps(json_str)
-	local json = parse_json(json_str)
-	if not (json and json.dependencies) then
+	local decoded = json.decode(json_str)
+	if not (decoded and decoded.dependencies) then
 		return
 	end
 
 	---@type ApiDependency[]
 	local dependencies = {}
 	---@diagnostic disable-next-line: no-unknown
-	for name, vers in pairs(json.dependencies) do
+	for name, vers in pairs(decoded.dependencies) do
 		---@type ApiDependency
 		local dependency = {
 			name = name,

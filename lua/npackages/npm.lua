@@ -1,8 +1,8 @@
 local job = require("npackages.util.job")
 local logger = require("npackages.logger")
 local state = require("npackages.state")
-local to_boolean = require("npackages.util.to_boolean")
 local util = require("npackages.util")
+local json = require("npackages.util.json")
 
 local M = {}
 
@@ -14,7 +14,20 @@ M.PACKAGE_MANAGERS = {
 
 --- Checks if the currently opened file has content and JSON is in valid format
 M.is_valid_package_json = function()
-	local has_content = to_boolean(vim.api.nvim_buf_get_lines(0, 0, -1, false))
+	local value = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+	local has_content = true
+	if value == nil then
+		return false
+	end
+
+	if type(value) == "table" and vim.tbl_isempty(value) then
+		return false
+	end
+
+	if type(value) == "string" and value == "" then
+		return false
+	end
 
 	if not has_content then
 		return false
@@ -23,7 +36,7 @@ M.is_valid_package_json = function()
 	local buffer_content = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 
 	if pcall(function()
-		vim.json.decode(table.concat(buffer_content))
+		json.decode(table.concat(buffer_content))
 	end) then
 		return true
 	end

@@ -1,4 +1,3 @@
-local get_dependency_name_from_line = require("npackages.util.get_dependency_name_from_line")
 local semver = require("npackages.semver")
 local types = require("npackages.types")
 local Span = types.Span
@@ -217,12 +216,76 @@ function Section:display(override_name)
 	return text
 end
 
+--- Strips ^ and ~ from version
+---@param value string - value from which to strip ^ and ~ from
+---@return string | nil
+local function clean_version(value)
+	if value == nil then
+		return nil
+	end
+
+	local version = value:gsub("%^", ""):gsub("~", "")
+	return version
+end
+
+--- Checks if the given string conforms to 1.0.0 version format
+-- @param value: string - value to check if conforms
+-- @return boolean
+local is_valid_dependency_version = function(value)
+	local cleaned_version = clean_version(value)
+
+	if cleaned_version == nil then
+		return false
+	end
+
+	local position = 0
+	local is_valid = true
+
+	-- Check that the first two chunks in version string are numbers
+	-- Everything beyond could be unstable version suffix
+	for chunk in string.gmatch(cleaned_version, "([^.]+)") do
+		if position ~= 2 and type(tonumber(chunk)) ~= "number" then
+			is_valid = false
+		end
+
+		position = position + 1
+	end
+
+	return is_valid
+end
+
+--- Gets the dependency name from the given buffer line
+---@param line string - buffer line from which to get the name from
+---@return string?
+function M.get_dependency_name_from_line(line)
+	local value = {}
+
+	-- Tries to extract name and version
+	for chunk in string.gmatch(line, [["(.-)"]]) do
+		table.insert(value, chunk)
+	end
+
+	-- If no version or name fail
+	if not value[1] or not value[2] then
+		return nil
+	end
+
+	local is_valid_version = is_valid_dependency_version(value[2])
+
+	-- if is_installed and is_valid_version then
+	if is_valid_version then
+		return value[1]
+	end
+
+	return nil
+end
+
 ---@param text string
 ---@param line_nr integer
 ---@param start integer
 ---@param kind JsonSectionKind
 ---@return JsonSection|nil
-function M.parse_section(text, line_nr, start, kind)
+function M.scan_section(text, line_nr, start, kind)
 	---@type string, integer, string
 	local prefix, suffix_s, suffix
 
@@ -317,7 +380,7 @@ function M.scan_package_doc(lines)
 		local section_text = line:match('^.-%"(dependencies)%".-$')
 		local dev_section_text = line:match('^.-%"(devDependencies)%".-$')
 		local section_end = line:find("^.-%}.-$")
-		local package_version = get_dependency_name_from_line(line)
+		local package_version = M.get_dependency_name_from_line(line)
 
 		---NOTE:
 		--- iterate over every line (replicate for devDependencies):
@@ -328,10 +391,10 @@ function M.scan_package_doc(lines)
 		--- 1. dependency section
 		if section_text == "dependencies" then
 			local section_start = line:find('("dependencies")')
-			dep_section = M.parse_section(section_text, line_nr, section_start - 1, JsonSectionKind.DEFAULT)
+			dep_section = M.scan_section(section_text, line_nr, section_start - 1, JsonSectionKind.DEFAULT)
 		elseif dev_section_text == "devDependencies" then
 			local section_start = line:find('("devDependencies")')
-			dep_section = M.parse_section(dev_section_text, line_nr, section_start - 1, JsonSectionKind.DEV)
+			dep_section = M.scan_section(dev_section_text, line_nr, section_start - 1, JsonSectionKind.DEV)
 		end
 
 		--- 2. package line

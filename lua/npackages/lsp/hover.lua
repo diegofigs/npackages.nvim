@@ -1,5 +1,5 @@
 local state = require("npackages.lsp.state")
-local get_dependency_name_from_line = require("npackages.util.get_dependency_name_from_line")
+local scanner = require("npackages.lsp.scanner")
 local util = require("npackages.util")
 
 local M = {}
@@ -31,7 +31,7 @@ function M.hover(params)
 	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 	local line = lines[params.position.line + 1] -- 1-based index on lists
 
-	local package_name = get_dependency_name_from_line(line)
+	local package_name = scanner.get_dependency_name_from_line(line)
 	if package_name then
 		local pkg = state.api_cache[package_name]
 
