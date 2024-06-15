@@ -5,15 +5,13 @@ local State = {
 	diagnostics = {},
 	---@type table<lsp.DocumentUri, DocCache>
 	doc_cache = {},
-	---@type table<string, ApiPackage>
+	---@type table<string, PackageMetadata>
 	api_cache = {},
 	---@type SearchCache
 	search_cache = {
 		searches = {},
 		results = {},
 	},
-	---@type table<lsp.DocumentUri, string>
-	wdt_cache = {},
 	---@class LspSession
 	session = {},
 }

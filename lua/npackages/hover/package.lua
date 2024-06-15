@@ -5,7 +5,7 @@ local util = require("npackages.util")
 local M = {}
 
 ---@class PackageContext
----@field crate ApiPackage
+---@field crate PackageMetadata
 ---@field created_index integer
 ---@field updated_index integer
 ---@field downloads_index integer
@@ -79,7 +79,7 @@ local function pill_hl_text(items)
 	return hl_text
 end
 
----@param crate ApiPackage
+---@param crate PackageMetadata
 ---@param opts WinOpts
 function M.open(crate, opts)
 	hover.type = hover.Type.CRATE

@@ -1,113 +1,43 @@
-local edit = require("npackages.util.edit")
 local state = require("npackages.lsp.state")
 local types = require("npackages.types")
 local util = require("npackages.util")
-local logger = require("npackages.logger")
-local diagnostic = require("npackages.diagnostic")
+local analyzer = require("npackages.lsp.analyzer")
 local Span = types.Span
-local NpackagesDiagnosticKind = diagnostic.NpackagesDiagnosticKind
+local NpackagesDiagnosticKind = analyzer.NpackagesDiagnosticKind
 
 local M = {}
 
----@param params lsp.CodeActionParams
----@param alt boolean|nil
-function M.upgrade_package(params, alt)
-	local buf = vim.uri_to_bufnr(params.textDocument.uri)
-	local line = params.range.start.line
-	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
-	local info = util.get_lsp_info(params.textDocument.uri)
-	if next(packages) and info then
-		edit.upgrade_packages(buf, packages, info, alt)
-	end
-end
-
----@param params lsp.CodeActionParams
----@param alt boolean|nil
-function M.upgrade_packages(params, alt)
-	local buf = vim.uri_to_bufnr(params.textDocument.uri)
-	local lines = util.selected_lines()
-	local packages = util.get_lsp_packages(params.textDocument.uri, lines)
-	local info = util.get_lsp_info(params.textDocument.uri)
-	if next(packages) and info then
-		edit.upgrade_packages(buf, packages, info, alt)
-	end
-end
-
----@param params lsp.CodeActionParams
----@param alt boolean|nil
-function M.upgrade_all_packages(params, alt)
-	local buf = vim.uri_to_bufnr(params.textDocument.uri)
-	local cache = state.doc_cache[params.textDocument.uri]
-	if cache.packages and cache.info then
-		edit.upgrade_packages(buf, cache.packages, cache.info, alt)
-	end
-end
-
----@param params lsp.CodeActionParams
----@param alt boolean|nil
-function M.update_package(params, alt)
-	local buf = vim.uri_to_bufnr(params.textDocument.uri)
-	local line = params.range.start.line
-	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
-	local info = util.get_lsp_info(params.textDocument.uri)
-	if next(packages) and info then
-		edit.update_packages(buf, packages, info, alt)
-	end
-end
-
----@param params lsp.CodeActionParams
----@param alt boolean|nil
-function M.update_packages(params, alt)
-	local buf = vim.uri_to_bufnr(params.textDocument.uri)
-	local lines = util.selected_lines()
-	local packages = util.get_lsp_packages(params.textDocument.uri, lines)
-	local info = util.get_lsp_info(params.textDocument.uri)
-	if next(packages) and info then
-		edit.update_packages(buf, packages, info, alt)
-	end
-end
-
----@param params lsp.CodeActionParams
----@param alt boolean|nil
-function M.update_all_packages(params, alt)
-	local buf = vim.uri_to_bufnr(params.textDocument.uri)
-	local cache = state.doc_cache[params.textDocument.uri]
-	if cache.packages and cache.info then
-		edit.update_packages(buf, cache.packages, cache.info, alt)
-	end
-end
-
----@param params lsp.CodeActionParams
-function M.open_homepage(params)
-	-- local buf = util.current_buf()
-	local line = params.range.start.line
-	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
-	local _, crate = next(packages)
-	if crate then
-		local crate_info = state.api_cache[crate:package()]
-		if crate_info and crate_info.homepage then
-			util.open_url(crate_info.homepage)
-		else
-			logger.info(string.format("The crate '%s' has no homepage specified", crate:package()))
-		end
-	end
-end
-
----@param params lsp.CodeActionParams
-function M.open_repository(params)
-	-- local buf = util.current_buf()
-	local line = params.range.start.line
-	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
-	local _, crate = next(packages)
-	if crate then
-		local crate_info = state.api_cache[crate:package()]
-		if crate_info and crate_info.repository then
-			util.open_url(crate_info.repository)
-		else
-			logger.info(string.format("The crate '%s' has no repository specified", crate:package()))
-		end
-	end
-end
+------@param params lsp.CodeActionParams
+---function M.open_homepage(params)
+---	-- local buf = util.current_buf()
+---	local line = params.range.start.line
+---	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
+---	local _, crate = next(packages)
+---	if crate then
+---		local crate_info = state.api_cache[crate:package()]
+---		if crate_info and crate_info.homepage then
+---			util.open_url(crate_info.homepage)
+---		else
+---			logger.info(string.format("The crate '%s' has no homepage specified", crate:package()))
+---		end
+---	end
+---end
+---
+------@param params lsp.CodeActionParams
+---function M.open_repository(params)
+---	-- local buf = util.current_buf()
+---	local line = params.range.start.line
+---	local packages = util.get_lsp_packages(params.textDocument.uri, Span.pos(line))
+---	local _, crate = next(packages)
+---	if crate then
+---		local crate_info = state.api_cache[crate:package()]
+---		if crate_info and crate_info.repository then
+---			util.open_url(crate_info.repository)
+---		else
+---			logger.info(string.format("The crate '%s' has no repository specified", crate:package()))
+---		end
+---	end
+---end
 
 ---@param params lsp.CodeActionParams
 function M.open_npmjs(params)
@@ -120,58 +50,20 @@ function M.open_npmjs(params)
 	end
 end
 
----@param params lsp.CodeActionParams
-local function remove_diagnostic_range_action(params, code)
-	local buf = vim.uri_to_bufnr(params.textDocument.uri)
-	local diagnostics = params.context.diagnostics
-	for _, d in ipairs(diagnostics) do
-		if d.source == "npackages" and d.code == code then
-			return function()
-				vim.api.nvim_buf_set_text(
-					buf,
-					d.range.start.line,
-					d.range.start.character,
-					d.range["end"].line + 1,
-					d.range.start.character,
-					{}
-				)
-			end
-		end
-	end
-	local range = params.range
-	return function()
-		vim.api.nvim_buf_set_text(
-			buf,
-			range.start.line,
-			range.start.character,
-			range["end"].line + 1,
-			range["end"].character,
-			{}
-		)
-	end
-end
-
----@param params lsp.CodeActionParams
-local function remove_lines_action(params)
-	local buf = vim.uri_to_bufnr(params.textDocument.uri)
-	local range = params.range
-	return function()
-		vim.api.nvim_buf_set_lines(buf, range.start.line, range["end"].line + 1, false, {})
-	end
-end
-
-local function to_code_action(action)
-	local title = util.format_title(action.name)
+---@param uri lsp.DocumentUri
+---@param kind lsp.CodeActionKind
+---@param title string
+---@param edits lsp.TextEdit[]
+---@return lsp.CodeAction
+local function to_code_action(uri, kind, title, edits)
 	---@type lsp.CodeAction
 	return {
 		title = title,
-		---@type lsp.CodeActionKind
-		kind = "refactor.rewrite",
-		---@type lsp.Command
-		command = {
-			title = title,
-			command = "npackages",
-			arguments = { action.action },
+		kind = kind,
+		edit = {
+			changes = {
+				[uri] = edits,
+			},
 		},
 	}
 end
@@ -182,123 +74,112 @@ function M.get(params)
 	local doc = state.documents[params.textDocument.uri]
 	local actions = {}
 
+	for _, d in ipairs(params.context.diagnostics) do
+		if d.code == NpackagesDiagnosticKind.SECTION_DUP then
+			local d_range = {
+				start = d.range.start,
+				["end"] = { line = d.range["end"].line + 1, character = d.range.start.character },
+			}
+			local text_edit = { range = d_range, newText = "" }
+			table.insert(actions, to_code_action(doc.uri, "quickfix", "Remove duplicate section", { text_edit }))
+		end
+		if d.code == NpackagesDiagnosticKind.SECTION_INVALID then
+			local d_range = {
+				start = d.range.start,
+				["end"] = { line = d.range["end"].line + 1, character = d.range.start.character },
+			}
+			local text_edit = { range = d_range, newText = "" }
+			table.insert(actions, to_code_action(doc.uri, "quickfix", "Remove invalid section", { text_edit }))
+		end
+		if d.code == NpackagesDiagnosticKind.PACKAGE_DUP then
+			local d_range = {
+				start = { line = d.range.start.line, character = 0 },
+				["end"] = { line = d.range["end"].line + 1, character = 0 },
+			}
+			local text_edit = { range = d_range, newText = "" }
+			table.insert(actions, to_code_action(doc.uri, "quickfix", "Remove duplicate package", { text_edit }))
+		end
+	end
+
 	local range = params.range
 	local line = range.start.line
-	local col = range.start.character
-	local packages = util.get_lsp_packages(doc.uri, Span.pos(line))
-	local key, pkg = next(packages)
+	local current_line_pkgs = util.get_lsp_packages(doc.uri, Span.pos(line))
+	local line_key, line_pkg = next(current_line_pkgs)
+	local diagnostics = state.diagnostics[doc.uri]
 
-	local diagnostics = util.get_lsp_diagnostics(doc.uri) or {}
-	for _, d in ipairs(diagnostics) do
-		if not d:contains(line, col) then
-			goto continue
-		end
-
-		if d.kind == NpackagesDiagnosticKind.SECTION_DUP then
-			table.insert(
-				actions,
-				to_code_action({
-					name = "remove_duplicate_section",
-					action = remove_diagnostic_range_action(params, d.kind),
-				})
-			)
-		end
-		if d.kind == NpackagesDiagnosticKind.SECTION_DUP_ORIG then
-			table.insert(
-				actions,
-				to_code_action({
-					name = "remove_original_section",
-					action = remove_diagnostic_range_action(params, d.kind),
-				})
-			)
-		end
-		if d.kind == NpackagesDiagnosticKind.SECTION_INVALID then
-			table.insert(
-				actions,
-				to_code_action({
-					name = "remove_invalid_dependency_section",
-					action = remove_diagnostic_range_action(params, d.kind),
-				})
-			)
-		end
-		if d.kind == NpackagesDiagnosticKind.PACKAGE_DUP then
-			table.insert(
-				actions,
-				to_code_action({
-					name = "remove_duplicate_package",
-					action = remove_lines_action(params),
-				})
-			)
-		end
-		if d.kind == NpackagesDiagnosticKind.PACKAGE_DUP_ORIG then
-			table.insert(
-				actions,
-				to_code_action({
-					name = "remove_original_package",
-					action = remove_lines_action(params),
-				})
-			)
-		end
-
-		::continue::
-	end
-
-	if pkg then
-		local info = util.get_lsp_package_info(doc.uri, key)
+	if line_pkg then
+		local info = util.get_lsp_package_info(doc.uri, line_key)
 		if info then
-			if info.vers_update then
-				table.insert(
-					actions,
-					to_code_action({
-						name = "update_package",
-						action = function(alt)
-							M.update_package(params, alt)
-						end,
-					})
-				)
-			end
-			if info.vers_upgrade then
-				table.insert(
-					actions,
-					to_code_action({
-						name = "upgrade_package",
-						action = function(alt)
-							M.upgrade_package(params, alt)
-						end,
-					})
-				)
+			for _, d in ipairs(diagnostics) do
+				if d.range.start.line == line and d.range.start.character == range.start.character then
+					if info.vers_update then
+						local version = info.vers_update.parsed:display()
+						local text_edit = { range = d.range, newText = version }
+						table.insert(actions, to_code_action(doc.uri, "source", "Update package", { text_edit }))
+					end
+					if info.vers_upgrade then
+						local version = info.vers_upgrade.parsed:display()
+						local text_edit = { range = d.range, newText = version }
+						table.insert(actions, to_code_action(doc.uri, "source", "Upgrade package", { text_edit }))
+					end
+				end
 			end
 		end
 	end
 
-	table.insert(
-		actions,
-		to_code_action({
-			name = "update_all_packages",
-			action = function(alt)
-				M.update_all_packages(params, alt)
-			end,
-		})
-	)
-	table.insert(
-		actions,
-		to_code_action({
-			name = "upgrade_all_packages",
-			action = function(alt)
-				M.upgrade_all_packages(params, alt)
-			end,
-		})
-	)
+	---@type lsp.TextEdit[]
+	local update_all_edits = {}
+	---@type lsp.TextEdit[]
+	local upgrade_all_edits = {}
+	for _, d in pairs(diagnostics) do
+		if d.code == NpackagesDiagnosticKind.VERS_UPGRADE then
+			local d_packages = util.get_lsp_packages(doc.uri, Span.pos(d.range.start.line))
+			local d_line, d_pkg = next(d_packages)
+			if d_pkg then
+				local info = util.get_lsp_package_info(doc.uri, d_line)
+				if info then
+					if info.vers_update then
+						local version = info.vers_update.parsed:display()
+						local text_edit = { range = d.range, newText = version }
+						table.insert(update_all_edits, text_edit)
+					end
+					if info.vers_upgrade then
+						local version = info.vers_upgrade.parsed:display()
+						local text_edit = { range = d.range, newText = version }
+						table.insert(upgrade_all_edits, text_edit)
+					end
+				end
+			end
+		end
+	end
 
-	table.insert(
-		actions,
-		to_code_action({
-			name = "open_npmjs.org",
-			action = function()
-				M.open_npmjs(params)
-			end,
-		})
-	)
+	if #update_all_edits > 0 then
+		table.insert(actions, to_code_action(doc.uri, "source", "Update all packages", update_all_edits))
+	end
+
+	if #upgrade_all_edits > 0 then
+		table.insert(actions, to_code_action(doc.uri, "source", "Upgrade all packages", upgrade_all_edits))
+	end
+
+	if line_pkg then
+		---@type lsp.CodeAction
+		local cmd = {
+			title = "Open npmjs.org",
+			---@type lsp.CodeActionKind
+			kind = "refactor.rewrite",
+			---@type lsp.Command
+			command = {
+				title = "Open npmjs.org",
+				command = "npackages",
+				arguments = {
+					function()
+						M.open_npmjs(params)
+					end,
+				},
+			},
+		}
+		table.insert(actions, cmd)
+	end
 
 	return actions
 end

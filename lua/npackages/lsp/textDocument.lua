@@ -8,22 +8,6 @@ local util = require("npackages.util")
 
 local textDocument = {}
 
----@param d NpackagesDiagnostic
----@return lsp.Diagnostic
-local function to_lsp_diagnostic(d)
-	---@type lsp.Diagnostic
-	return {
-		range = {
-			start = { line = d.lnum, character = d.col },
-			["end"] = { line = d.end_lnum, character = d.end_col },
-		},
-		severity = d.severity,
-		code = d.kind,
-		message = plugin.cfg.diagnostic[d.kind],
-		source = "npackages",
-	}
-end
-
 ---@param items string[]
 local function kw_to_text(items)
 	local hl_text = ""
@@ -34,67 +18,53 @@ local function kw_to_text(items)
 end
 
 ---@param params lsp.DidOpenTextDocumentParams
----@param callback fun(diagnostics: lsp.Diagnostic[]?)
+---@param callback fun()
 function textDocument.didOpen(params, callback)
 	local doc = params.textDocument
 	state.documents[doc.uri] = doc
 
-	local cache = core.update(doc.uri)
+	core.update(doc.uri)
 	if plugin.cfg.autoupdate then
 		core.inner_throttled_update = async.throttle(function()
 			core.update(doc.uri)
 		end, plugin.cfg.autoupdate_throttle)
 	end
 
-	-- compute diagnostics
-	local diagnostics = {}
-	for _, d in ipairs(cache.diagnostics) do
-		table.insert(diagnostics, to_lsp_diagnostic(d))
-	end
-	callback(diagnostics)
+	callback()
 end
 
 ---@param params lsp.DidChangeTextDocumentParams
----@param callback fun(diagnostics: lsp.Diagnostic[]?)
+---@param callback fun()
 function textDocument.didChange(params, callback)
 	local doc = params.textDocument
 	for _, change in ipairs(params.contentChanges) do
 		state.documents[doc.uri].text = change.text
 	end
 
-	local cache = core.update(doc.uri)
-	-- core.throttled_update(vim.uri_to_bufnr(doc.uri), false)
+	-- core.update(doc.uri)
+	core.throttled_update(vim.uri_to_bufnr(doc.uri), false)
 
-	-- compute diagnostics
-	local diagnostics = {}
-	for _, d in ipairs(cache.diagnostics) do
-		table.insert(diagnostics, to_lsp_diagnostic(d))
-	end
-	callback(diagnostics)
+	callback()
 end
 
 ---@param params lsp.DidSaveTextDocumentParams
----@param callback fun(diagnostics: lsp.Diagnostic[]?)
+---@param callback fun()
 function textDocument.didSave(params, callback)
-	logger.debug(params)
 	local doc = params.textDocument
 	state.documents[doc.uri].text = params.text
 
-	local cache = core.update(doc.uri)
+	core.update(doc.uri)
 
-	-- compute diagnostics
-	local diagnostics = {}
-	for _, d in ipairs(cache.diagnostics) do
-		table.insert(diagnostics, to_lsp_diagnostic(d))
-	end
-
-	callback(diagnostics)
+	callback()
 end
 
 ---@param params lsp.DidCloseTextDocumentParams
-function textDocument.didClose(params)
+---@param callback fun()
+function textDocument.didClose(params, callback)
 	local doc = params.textDocument
 	state.documents[doc.uri] = nil
+
+	callback()
 end
 
 ---@param params lsp.HoverParams
@@ -110,7 +80,7 @@ function textDocument.hover(params)
 	if package_name then
 		local pkg = state.api_cache[package_name]
 
-		local title = string.format(plugin.cfg.popup.text.title, pkg.name)
+		local title = "# " .. string.format(plugin.cfg.popup.text.title, pkg.name)
 		local text = plugin.cfg.popup.text
 		local hover_text = title .. "\n"
 
@@ -154,28 +124,8 @@ function textDocument.hover(params)
 		end
 
 		---@type lsp.Hover
-		return { contents = { kind = "plaintext", value = hover_text } }
+		return { contents = { kind = "markdown", value = hover_text } }
 	end
-end
-
----@param params lsp.DocumentDiagnosticParams
----@param callback fun(result: lsp.DocumentDiagnosticReport)
-function textDocument.diagnostic(params, callback)
-	local doc = state.documents[params.textDocument.uri]
-
-	local cache = state.doc_cache[doc.uri]
-
-	-- compute diagnostics
-	---@type lsp.Diagnostic[]
-	local diagnostics = {}
-	for _, d in ipairs(cache.diagnostics) do
-		table.insert(diagnostics, to_lsp_diagnostic(d))
-	end
-	state.diagnostics[doc.uri] = diagnostics
-
-	local is_unchanged = vim.deep_equal(cache.diagnostics, diagnostics)
-	local kind = is_unchanged and "full" or "unchanged"
-	callback({ kind = kind, items = diagnostics })
 end
 
 return textDocument

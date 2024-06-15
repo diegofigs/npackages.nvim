@@ -65,13 +65,6 @@ local sub_commands = {
 	{ "install", install },
 	{ "change_version", change_version },
 
-	-- { "upgrade_package", actions.upgrade_package },
-	-- { "upgrade_packages", actions.upgrade_packages },
-	-- { "upgrade_all_packages", actions.upgrade_all_packages },
-	-- { "update_package", actions.update_package },
-	-- { "update_packages", actions.update_packages },
-	-- { "update_all_packages", actions.update_all_packages },
-	--
 	-- { "open_homepage", actions.open_homepage },
 	-- { "open_repository", actions.open_repository },
 	-- { "open_npmjsorg", actions.open_npmjs() },

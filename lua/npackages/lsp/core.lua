@@ -1,8 +1,7 @@
 local state = require("npackages.lsp.state")
-local plugin = require("npackages.state")
 local api = require("npackages.api")
 local async = require("npackages.async")
-local diagnostic = require("npackages.diagnostic")
+local analyzer = require("npackages.lsp.analyzer")
 local scanner = require("npackages.lsp.scanner")
 local ui = require("npackages.ui")
 local util = require("npackages.util")
@@ -27,15 +26,14 @@ M.reload_deps = async.wrap(function(package_name, versions, version)
 		version.deps = deps
 
 		for uri, cache in pairs(state.doc_cache) do
-			local b = vim.uri_to_bufnr(uri)
 			-- update crate in all dependency sections
 			for _, pkg in pairs(cache.packages) do
 				if pkg:package() == package_name then
 					local m, p, y = util.get_newest(versions, pkg:vers_reqs())
 					local match = m or p or y
 
-					if pkg.vers and match == version and vim.api.nvim_buf_is_loaded(b) then
-						local diagnostics = diagnostic.process_package_deps(pkg, version, deps)
+					if pkg.vers and match == version then
+						local diagnostics = analyzer.process_package_deps(pkg, version, deps)
 						-- ui.display_diagnostics(b, diagnostics)
 					end
 				end
@@ -59,24 +57,24 @@ M.reload_package = async.wrap(function(package_name)
 
 	for uri, cache in pairs(state.doc_cache) do
 		local b = vim.uri_to_bufnr(uri)
-		-- update crate in all dependency sections
+		-- update package in all dependency sections
 		for k, pkg in pairs(cache.packages) do
 			if pkg.dep_kind ~= DepKind.REGISTRY or pkg.registry ~= nil then
 				goto continue
 			end
 
-			if pkg:package() == package_name and vim.api.nvim_buf_is_loaded(b) then
-				local info, diagnostics = diagnostic.process_api_package(pkg, crate)
+			if pkg:package() == package_name then
+				local info, diagnostics = analyzer.process_api_package(pkg, crate)
 				cache.info[k] = info
-				-- vim.list_extend(cache.diagnostics, diagnostics)
+				vim.list_extend(cache.diagnostics, diagnostics)
 
 				ui.display_package_info(b, info, diagnostics)
 
-				local version = info.vers_match or info.vers_upgrade
-				if version then
-					---@cast versions -nil
-					-- M.reload_deps(pkg:package(), versions, version)
-				end
+				-- local version = info.vers_match or info.vers_upgrade
+				-- if version then
+				-- 	-- @cast versions -nil
+				-- 	M.reload_deps(pkg:package(), versions, version)
+				-- end
 			end
 
 			::continue::
@@ -87,7 +85,7 @@ end)
 ---@param uri lsp.DocumentUri
 ---@param reload boolean|nil
 local function update(uri, reload)
-	local doc = state.documents[uri]
+	-- local doc = state.documents[uri]
 	local buf = vim.uri_to_bufnr(uri)
 
 	if reload then
@@ -100,7 +98,7 @@ local function update(uri, reload)
 
 	local sections, packages = scanner.parse_document_text(lines)
 
-	local package_cache, diagnostics = diagnostic.process_packages(sections, packages)
+	local package_cache, diagnostics = analyzer.process_packages(sections, packages)
 	local cache = {
 		packages = package_cache,
 		info = {},
@@ -109,37 +107,33 @@ local function update(uri, reload)
 	state.doc_cache[uri] = cache
 
 	ui.clear(buf)
-	-- ui.display_diagnostics(buf, diagnostics)
 	for cache_key, pkg in pairs(package_cache) do
 		if pkg.dep_kind ~= DepKind.REGISTRY or pkg.registry ~= nil then
 			goto continue
 		end
-
 		local api_package = state.api_cache[pkg:package()]
 		local versions = api_package and api_package.versions
 
 		if not reload and api_package then
-			local info, p_diagnostics = diagnostic.process_api_package(pkg, api_package)
+			local info, p_diagnostics = analyzer.process_api_package(pkg, api_package)
 			cache.info[cache_key] = info
-			-- vim.list_extend(cache.diagnostics, p_diagnostics)
+			vim.list_extend(cache.diagnostics, p_diagnostics)
 
 			ui.display_package_info(buf, info, p_diagnostics)
 
 			local version = info.vers_match or info.vers_upgrade
 			if version then
 				if version.deps then
-					-- local d_diagnostics = diagnostic.process_package_deps(pkg, version, version.deps)
-					-- vim.list_extend(cache.diagnostics, d_diagnostics)
-
-					-- ui.display_diagnostics(buf, d_diagnostics)
+					local d_diagnostics = analyzer.process_package_deps(pkg, version, version.deps)
+					vim.list_extend(cache.diagnostics, d_diagnostics)
 				else
-					-- M.reload_deps(pkg:package(), versions, version)
+					M.reload_deps(pkg:package(), versions, version)
 				end
 			end
 		else
-			if plugin.cfg.loading_indicator then
-				ui.display_loading(buf, pkg)
-			end
+			-- if plugin.cfg.loading_indicator then
+			-- 	ui.display_loading(buf, pkg)
+			-- end
 
 			M.reload_package(pkg:package())
 		end
@@ -188,13 +182,11 @@ end
 
 ---@param uri lsp.DocumentUri
 function M.update(uri)
-	logger.debug(string.format("update (%s)", uri))
 	return update(uri, false)
 end
 
 ---@param uri lsp.DocumentUri
 function M.reload(uri)
-	logger.debug(string.format("reload (%s)", uri))
 	return update(uri, true)
 end
 
