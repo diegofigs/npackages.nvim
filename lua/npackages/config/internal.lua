@@ -465,7 +465,7 @@ entry(schema_diagnostic, {
 entry(schema_diagnostic, {
 	name = "vers_upgrade",
 	type = STRING_TYPE,
-	default = "There is an upgrade available",
+	default = "Upgrade available",
 	hidden = true,
 })
 entry(schema_diagnostic, {

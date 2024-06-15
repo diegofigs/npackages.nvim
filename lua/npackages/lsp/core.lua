@@ -6,7 +6,6 @@ local scanner = require("npackages.lsp.scanner")
 local ui = require("npackages.ui")
 local util = require("npackages.util")
 local DepKind = scanner.DepKind
-local logger = require("npackages.logger")
 
 ---@class NpackagesLspCore
 ---@field throttled_updates table<integer,fun()[]>
@@ -25,20 +24,20 @@ M.reload_deps = async.wrap(function(package_name, versions, version)
 	if deps then
 		version.deps = deps
 
-		for uri, cache in pairs(state.doc_cache) do
-			-- update crate in all dependency sections
-			for _, pkg in pairs(cache.packages) do
-				if pkg:package() == package_name then
-					local m, p, y = analyzer.get_newest(versions, pkg:vers_reqs())
-					local match = m or p or y
-
-					if pkg.vers and match == version then
-						local diagnostics = analyzer.process_package_deps(pkg, version, deps)
-						-- ui.display_diagnostics(b, diagnostics)
-					end
-				end
-			end
-		end
+		-- for _, cache in pairs(state.doc_cache) do
+		-- 	-- update crate in all dependency sections
+		-- 	for _, pkg in pairs(cache.packages) do
+		-- 		if pkg:package() == package_name then
+		-- 			local m, p, y = analyzer.get_newest(versions, pkg:vers_reqs())
+		-- 			local match = m or p or y
+		--
+		-- 			if pkg.vers and match == version then
+		-- 				local diagnostics = analyzer.process_package_deps(pkg, version, deps)
+		-- 				ui.display_diagnostics(b, diagnostics)
+		-- 			end
+		-- 		end
+		-- 	end
+		-- end
 	end
 end)
 

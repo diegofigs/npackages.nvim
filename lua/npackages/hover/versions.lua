@@ -1,4 +1,5 @@
 local scanner = require("npackages.lsp.scanner")
+local analyzer = require("npackages.lsp.analyzer")
 local hover = require("npackages.hover.common")
 local state = require("npackages.state")
 local util = require("npackages.util")
@@ -29,7 +30,7 @@ end
 ---@param alt boolean|nil
 ---@return Span
 local function set_version(buf, package, version, alt)
-	local text = M.version_text(package, version, alt)
+	local text = analyzer.version_text(package, version, alt)
 	return insert_version(buf, package, text)
 end
 

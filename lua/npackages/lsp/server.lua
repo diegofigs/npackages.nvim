@@ -1,6 +1,7 @@
 local codeAction = require("npackages.lsp.codeAction")
 local completion = require("npackages.lsp.completion")
 local textDocument = require("npackages.lsp.textDocument")
+local hover = require("npackages.lsp.hover")
 local logger = require("npackages.logger")
 local plugin = require("npackages.state")
 local state = require("npackages.lsp.state")
@@ -58,7 +59,7 @@ local handlers = {
 	---@param params lsp.HoverParams
 	---@param callback fun(err: nil, result: lsp.Hover|nil)
 	[vim.lsp.protocol.Methods.textDocument_hover] = function(method, params, callback)
-		callback(nil, textDocument.hover(params))
+		callback(nil, hover.hover(params))
 	end,
 
 	---@param method string
