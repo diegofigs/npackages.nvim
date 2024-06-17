@@ -15,9 +15,14 @@ end
 local M = {}
 
 ---@param params lsp.DocumentDiagnosticParams
----@return lsp.DocumentDiagnosticReport
-local function diagnose(params)
+---@param callback fun(err, res)
+-- ---@return lsp.DocumentDiagnosticReport
+local function diagnose(params, callback)
 	local doc = state.documents[params.textDocument.uri]
+	if doc == nil then
+		callback(nil, { kind = "full", items = {} })
+		return
+	end
 	local buf = vim.uri_to_bufnr(doc.uri)
 
 	local workDoneToken = params.workDoneToken
@@ -47,6 +52,16 @@ local function diagnose(params)
 	local pkg_count = 1
 	for _, pkg in pairs(packages) do
 		local api_package = state.api_cache[pkg:package()]
+		---@type lsp.WorkDoneProgressParams
+		local progress_params = {
+			token = workDoneToken,
+			---@type lsp.WorkDoneProgressReport
+			value = {
+				kind = "report",
+				message = string.format("%s/%s packages", pkg_count, pkg_total),
+			},
+		}
+		state.session.dispatchers.notification(vim.lsp.protocol.Methods.dollar_progress, progress_params)
 		if not api_package and api.is_fetching_crate(pkg:package()) then
 			local _, cancelled = api.await_crate(pkg:package())
 
@@ -67,16 +82,6 @@ local function diagnose(params)
 			return {}
 		end
 
-		---@type lsp.WorkDoneProgressParams
-		local progress_params = {
-			token = workDoneToken,
-			---@type lsp.WorkDoneProgressReport
-			value = {
-				kind = "report",
-				message = string.format("%s/%s packages", pkg_count, pkg_total),
-			},
-		}
-		state.session.dispatchers.notification(vim.lsp.protocol.Methods.dollar_progress, progress_params)
 		pkg_count = pkg_count + 1
 	end
 
@@ -99,14 +104,14 @@ local function diagnose(params)
 	}
 	state.session.dispatchers.notification(vim.lsp.protocol.Methods.dollar_progress, end_params)
 
-	return { kind = kind, items = diagnostics }
+	callback(nil, { kind = kind, items = diagnostics })
 end
 
 ---@param params lsp.DocumentDiagnosticParams
----@param callback fun(response: lsp.DocumentDiagnosticReport?)
+---@param callback fun(err, res: lsp.DocumentDiagnosticReport?)
 function M.diagnose(params, callback)
 	vim.schedule(async.wrap(function()
-		callback(diagnose(params))
+		diagnose(params, callback)
 	end))
 end
 

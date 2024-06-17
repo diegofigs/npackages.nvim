@@ -114,7 +114,7 @@ local DEPENDENCY_KIND_MAP = {
 local function start_job(url, on_exit)
 	---@type Job
 	local job = {}
-	local stdout = vim.loop.new_pipe()
+	local stdout = vim.uv.new_pipe()
 
 	---@type string|nil
 	local stdout_str = nil
@@ -127,12 +127,12 @@ local function start_job(url, on_exit)
 	---@param code integer
 	---@param _signal integer
 	---@type uv_process_t, integer
-	handle = vim.loop.spawn("curl", opts, function(code, _signal)
+	handle = vim.uv.spawn("curl", opts, function(code, _signal)
 		handle:close()
 
 		local success = code == 0
 
-		local check = vim.loop.new_check()
+		local check = vim.uv.new_check()
 		if check ~= nil and stdout ~= nil then
 			check:start(function()
 				if not stdout:is_closing() then

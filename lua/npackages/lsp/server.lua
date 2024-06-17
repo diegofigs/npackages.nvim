@@ -30,8 +30,10 @@ local handlers = {
 				interFileDependencies = false,
 			},
 		}
+		if server_capabilities.completionProvider then
+			completion.extend_triggers()
+		end
 		callback(nil, {
-
 			capabilities = server_capabilities,
 			serverInfo = {
 				name = "npackages_ls",
@@ -66,10 +68,10 @@ local handlers = {
 
 	---@param method string
 	---@param params lsp.DocumentDiagnosticParams
-	---@param callback fun(err: nil, result: lsp.DocumentDiagnosticReport)
+	---@param callback fun(err, result: lsp.DocumentDiagnosticReport)
 	[vim.lsp.protocol.Methods.textDocument_diagnostic] = function(method, params, callback)
-		diagnostic.diagnose(params, function(result)
-			callback(nil, result)
+		diagnostic.diagnose(params, function(err, result)
+			callback(err, result)
 		end)
 	end,
 
@@ -93,24 +95,9 @@ local handlers = {
 }
 
 local notify_handlers = {
-	---@param params lsp.DidOpenTextDocumentParams
-	[vim.lsp.protocol.Methods.textDocument_didOpen] = function(params, callback)
-		textDocument.didOpen(params, function()
-			callback(nil, nil)
-		end)
-	end,
-	---@param params lsp.DidChangeTextDocumentParams
-	[vim.lsp.protocol.Methods.textDocument_didChange] = function(params, callback)
-		textDocument.didChange(params, function()
-			callback(nil, nil)
-		end)
-	end,
-	---@param params lsp.DidCloseTextDocumentParams
-	[vim.lsp.protocol.Methods.textDocument_didClose] = function(params, callback)
-		textDocument.didClose(params, function()
-			callback(nil, nil)
-		end)
-	end,
+	[vim.lsp.protocol.Methods.textDocument_didOpen] = textDocument.didOpen,
+	[vim.lsp.protocol.Methods.textDocument_didChange] = textDocument.didChange,
+	[vim.lsp.protocol.Methods.textDocument_didClose] = textDocument.didClose,
 	[vim.lsp.protocol.Methods.textDocument_didSave] = textDocument.didSave,
 }
 
@@ -177,7 +164,7 @@ local function server(opts)
 			logger.debug(method)
 			logger.debug(params)
 			if handler then
-				handler(params, function()
+				handler(params, function(_, _)
 					local doc = params.textDocument
 					local client_id = state.session.client_id
 

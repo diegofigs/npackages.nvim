@@ -9,44 +9,6 @@ local hover = require("npackages.hover")
 
 local M = {}
 
-local function extend_triggers()
-	if state.cfg.completion.npackages.enabled then
-		local triggers = require("npackages.lsp.completion").trigger_characters
-		for _, v in ipairs({
-			"a",
-			"b",
-			"c",
-			"d",
-			"e",
-			"f",
-			"g",
-			"h",
-			"i",
-			"j",
-			"k",
-			"l",
-			"m",
-			"n",
-			"o",
-			"p",
-			"q",
-			"r",
-			"s",
-			"t",
-			"u",
-			"v",
-			"w",
-			"x",
-			"y",
-			"z",
-			"-",
-			"_",
-		}) do
-			triggers[#triggers + 1] = v
-		end
-	end
-end
-
 local function attach()
 	npm.parse()
 	state.cfg.on_attach(util.current_buf())
@@ -67,11 +29,6 @@ M.setup = function(user_options)
 	local group = vim.api.nvim_create_augroup("NpackagesAutogroup", {})
 
 	if state.cfg.autoload then
-		if state.cfg.completion.cmp.enabled then
-			extend_triggers()
-			require("npackages.completion.cmp").setup()
-		end
-
 		attach()
 
 		vim.api.nvim_create_autocmd("BufRead", {
