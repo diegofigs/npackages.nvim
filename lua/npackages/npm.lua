@@ -1,14 +1,33 @@
-local constants = require("npackages.constants")
-local job = require("npackages.utils.job")
+local job = require("npackages.util.job")
 local logger = require("npackages.logger")
 local state = require("npackages.state")
-local to_boolean = require("npackages.utils.to_boolean")
 local util = require("npackages.util")
+local json = require("npackages.util.json")
 
 local M = {}
+
+M.PACKAGE_MANAGERS = {
+	yarn = "yarn",
+	npm = "npm",
+	pnpm = "pnpm",
+}
+
 --- Checks if the currently opened file has content and JSON is in valid format
 M.is_valid_package_json = function()
-	local has_content = to_boolean(vim.api.nvim_buf_get_lines(0, 0, -1, false))
+	local value = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+	local has_content = true
+	if value == nil then
+		return false
+	end
+
+	if type(value) == "table" and vim.tbl_isempty(value) then
+		return false
+	end
+
+	if type(value) == "string" and value == "" then
+		return false
+	end
 
 	if not has_content then
 		return false
@@ -17,7 +36,7 @@ M.is_valid_package_json = function()
 	local buffer_content = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 
 	if pcall(function()
-		vim.json.decode(table.concat(buffer_content))
+		json.decode(table.concat(buffer_content))
 	end) then
 		return true
 	end
@@ -47,7 +66,7 @@ M.detect_package_manager = function()
 
 		io.close(yarn_lock)
 
-		return constants.PACKAGE_MANAGERS.yarn
+		return M.PACKAGE_MANAGERS.yarn
 	end
 
 	local package_lock = io.open("package-lock.json", "r")
@@ -55,7 +74,7 @@ M.detect_package_manager = function()
 	if package_lock ~= nil then
 		io.close(package_lock)
 
-		return constants.PACKAGE_MANAGERS.npm
+		return M.PACKAGE_MANAGERS.npm
 	end
 
 	local pnpm_lock = io.open("pnpm-lock.yaml", "r")
@@ -63,7 +82,7 @@ M.detect_package_manager = function()
 	if pnpm_lock ~= nil then
 		io.close(pnpm_lock)
 
-		return constants.PACKAGE_MANAGERS.pnpm
+		return M.PACKAGE_MANAGERS.pnpm
 	end
 end
 

@@ -7,7 +7,7 @@ dependencies = {
 }
 
 test_dependencies = {
-	"busted == 2.1.2-3",
+	"nlua",
 }
 
 source = {

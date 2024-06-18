@@ -1,9 +1,62 @@
 local types = require("npackages.types")
-local Cond = types.Cond
-local SemVer = types.SemVer
 local Span = types.Span
 
 local M = {}
+
+---@enum Cond
+local Cond = {
+	EQ = 1,
+	LT = 2,
+	LE = 3,
+	GT = 4,
+	GE = 5,
+	CR = 6,
+	TL = 7,
+	WL = 8,
+	BL = 9,
+}
+M.Cond = Cond
+
+---@class SemVer
+---@field major integer|nil
+---@field minor integer|nil
+---@field patch integer|nil
+---@field pre string|nil
+---@field meta string|nil
+local SemVer = {}
+M.SemVer = SemVer
+
+---@param obj SemVer
+---@return SemVer
+function SemVer.new(obj)
+	return setmetatable(obj, { __index = SemVer })
+end
+
+---@return string
+function SemVer:display()
+	local text = ""
+	if self.major then
+		text = text .. self.major
+	end
+
+	if self.minor then
+		text = text .. "." .. self.minor
+	end
+
+	if self.patch then
+		text = text .. "." .. self.patch
+	end
+
+	if self.pre then
+		text = text .. "-" .. self.pre
+	end
+
+	if self.meta then
+		text = text .. "+" .. self.meta
+	end
+
+	return text
+end
 
 ---@param str string
 ---@return SemVer

@@ -1,5 +1,4 @@
-local get_dependency_name_from_line = require("npackages.utils.get_dependency_name_from_line")
-local semver = require("npackages.semver")
+local semver = require("npackages.lib.semver")
 local types = require("npackages.types")
 local Span = types.Span
 
@@ -21,7 +20,6 @@ M.Section = Section
 local JsonSectionKind = {
 	DEFAULT = 1,
 	DEV = 2,
-	BUILD = 3,
 }
 M.JsonSectionKind = JsonSectionKind
 
@@ -42,8 +40,6 @@ M.JsonSectionKind = JsonSectionKind
 ---@field pkg JsonPackagePkg|nil
 ---@field workspace JsonPackageWorkspace|nil
 ---@field opt JsonPackageOpt|nil
----@field def JsonPackageDef|nil
----@field feat JsonPackageFeat|nil
 ---@field section JsonSection|nil
 ---@field dep_kind DepKind|nil
 local Package = {}
@@ -52,8 +48,6 @@ M.Package = Package
 ---@enum JsonPackageSyntax
 local JsonPackageSyntax = {
 	PLAIN = 1,
-	INLINE_TABLE = 2,
-	TABLE = 3,
 }
 M.JsonPackageSyntax = JsonPackageSyntax
 
@@ -122,20 +116,6 @@ M.JsonPackageSyntax = JsonPackageSyntax
 ---@field col Span
 ---@field decl_col Span
 
----@class JsonPackageDef
----@field enabled boolean
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
-
----@class JsonPackageFeat
----@field items TomlFeature[]
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
-
 ---@enum DepKind
 local DepKind = {
 	REGISTRY = 1,
@@ -145,60 +125,14 @@ local DepKind = {
 }
 M.DepKind = DepKind
 
----@class TomlFeature
----@field name string
----relative to to the start of the features text
----@field col Span
----relative to to the start of the features text
----@field decl_col Span
----@field quote Quotes
----@field comma boolean
-local TomlFeature = {}
-M.TomlFeature = TomlFeature
-
 ---@class Quotes
 ---@field s string
 ---@field e string|nil
 
----@param text string
----@return TomlFeature[]
-function M.parse_crate_features(text)
-	---@type TomlFeature[]
-	local feats = {}
-	---@param fds integer
-	---@param qs string
-	---@param fs integer
-	---@param f string
-	---@param fe integer
-	---@param qe string|nil
-	---@param fde integer
-	---@param c string|nil
-	for fds, qs, fs, f, fe, qe, fde, c in text:gmatch([[[,]?()%s*(["'])()([^,"']*)()(["']?)%s*()([,]?)]]) do
-		---@type TomlFeature
-		local feat = {
-			name = f,
-			col = Span.new(fs - 1, fe - 1),
-			decl_col = Span.new(fds - 1, fde - 1),
-			quote = { s = qs, e = qe ~= "" and qe or nil },
-			comma = c == ",",
-		}
-		table.insert(feats, feat)
-	end
-
-	return feats
-end
-
----@param obj JsonPackage
 ---@return JsonPackage
 function Package.new(obj)
 	if obj.vers then
 		obj.vers.reqs = semver.parse_requirements(obj.vers.text)
-	end
-	if obj.feat then
-		obj.feat.items = M.parse_crate_features(obj.feat.text)
-	end
-	if obj.def then
-		obj.def.enabled = obj.def.text ~= "false"
 	end
 	if obj.workspace then
 		obj.workspace.enabled = obj.workspace.text ~= "false"
@@ -223,33 +157,6 @@ end
 ---@return Requirement[]
 function Package:vers_reqs()
 	return self.vers and self.vers.reqs or {}
-end
-
----@param name string
----@return TomlFeature|nil
----@return integer|nil
-function Package:get_feat(name)
-	if not self.feat or not self.feat.items then
-		return nil, nil
-	end
-
-	for i, f in ipairs(self.feat.items) do
-		if f.name == name then
-			return f, i
-		end
-	end
-
-	return nil, nil
-end
-
----@return TomlFeature[]
-function Package:feats()
-	return self.feat and self.feat.items or {}
-end
-
----@return boolean
-function Package:is_def_enabled()
-	return not self.def or self.def.enabled
 end
 
 ---@return boolean
@@ -297,8 +204,6 @@ function Section:display(override_name)
 		text = text .. "dependencies"
 	elseif self.kind == JsonSectionKind.DEV then
 		text = text .. "devDependencies"
-		-- elseif self.kind == JsonSectionKind.BUILD then
-		-- 	text = text .. "build-dependencies"
 	end
 
 	local name = override_name or self.name
@@ -311,15 +216,80 @@ function Section:display(override_name)
 	return text
 end
 
+--- Strips ^ and ~ from version
+---@param value string - value from which to strip ^ and ~ from
+---@return string | nil
+local function clean_version(value)
+	if value == nil then
+		return nil
+	end
+
+	local version = value:gsub("%^", ""):gsub("~", "")
+	return version
+end
+
+--- Checks if the given string conforms to 1.0.0 version format
+-- @param value: string - value to check if conforms
+-- @return boolean
+local is_valid_dependency_version = function(value)
+	local cleaned_version = clean_version(value)
+
+	if cleaned_version == nil then
+		return false
+	end
+
+	local position = 0
+	local is_valid = true
+
+	-- Check that the first two chunks in version string are numbers
+	-- Everything beyond could be unstable version suffix
+	for chunk in string.gmatch(cleaned_version, "([^.]+)") do
+		if position ~= 2 and type(tonumber(chunk)) ~= "number" then
+			is_valid = false
+		end
+
+		position = position + 1
+	end
+
+	return is_valid
+end
+
+--- Gets the dependency name from the given buffer line
+---@param line string - buffer line from which to get the name from
+---@return string?
+function M.get_dependency_name_from_line(line)
+	local value = {}
+
+	-- Tries to extract name and version
+	for chunk in string.gmatch(line, [["(.-)"]]) do
+		table.insert(value, chunk)
+	end
+
+	-- If no version or name fail
+	if not value[1] or not value[2] then
+		return nil
+	end
+
+	local is_valid_version = is_valid_dependency_version(value[2])
+
+	-- if is_installed and is_valid_version then
+	if is_valid_version then
+		return value[1]
+	end
+
+	return nil
+end
+
 ---@param text string
 ---@param line_nr integer
 ---@param start integer
 ---@param kind JsonSectionKind
 ---@return JsonSection|nil
-function M.parse_section(text, line_nr, start, kind)
+function M.scan_section(text, line_nr, start, kind)
 	---@type string, integer, string
 	local prefix, suffix_s, suffix
 
+	-- TODO: fix brittle parsing, prefix and suffix end up as empty strings
 	if kind == JsonSectionKind.DEFAULT then
 		prefix, suffix_s, suffix = text:match("^(.*)dependencies()(.*)$")
 	else
@@ -341,47 +311,22 @@ function M.parse_section(text, line_nr, start, kind)
 
 		local target = prefix
 
-		-- local dev_target = prefix:match("^(.*)dev%-$")
-		-- if dev_target then
-		-- 	target = vim.trim(dev_target)
-		-- 	section.kind = JsonSectionKind.DEV
-		-- end
-		--
-		-- local build_target = prefix:match("^(.*)build%-$")
-		-- if build_target then
-		-- 	target = vim.trim(build_target)
-		-- 	section.kind = JsonSectionKind.BUILD
-		-- end
-		--
-		-- local workspace_target = target:match("^(.*)workspace%s*%.$")
-		-- if workspace_target then
-		-- 	section.workspace = true
-		-- 	target = vim.trim(workspace_target)
-		-- end
-		--
-		-- if target then
-		-- 	local t = target:match("^target%s*%.(.+)%.$")
-		-- 	if t then
-		-- 		section.target = vim.trim(t)
-		-- 		target = ""
+		-- if suffix then
+		-- 	local n_s, n, n_e = suffix:match("^%.%s*()(.+)()%s*$")
+		-- 	if n then
+		-- 		section.name = vim.trim(n)
+		-- 		---@cast suffix_s number
+		-- 		local offset = start + suffix_s - 1
+		-- 		section.name_col = Span.new(n_s - 1 + offset, n_e - 1 + offset)
+		-- 		suffix = ""
 		-- 	end
 		-- end
-
-		if suffix then
-			local n_s, n, n_e = suffix:match("^%.%s*()(.+)()%s*$")
-			if n then
-				section.name = vim.trim(n)
-				---@cast suffix_s number
-				local offset = start + suffix_s - 1
-				section.name_col = Span.new(n_s - 1 + offset, n_e - 1 + offset)
-				suffix = ""
-			end
-		end
 
 		section.invalid = (target ~= "" or suffix ~= "")
 			or (section.workspace and section.kind ~= JsonSectionKind.DEFAULT)
 			or (section.workspace and section.target ~= nil)
 
+		section.name_col = Span.new(start, start + suffix_s + 1)
 		return Section.new(section)
 	end
 
@@ -392,8 +337,7 @@ end
 ---@param line string
 ---@param line_nr integer
 ---@return JsonPackage|nil
-function M.parse_inline_package(line, line_nr)
-	-- plain version
+function M.scan_line(line, line_nr)
 	do
 		local name_s, name, name_e, quote_s, str_s, text, str_e, quote_e =
 			line:match([[^%s*()%"([^%s]+)%"()%s*:%s*(["'])()([^"']*)()(["']?).*$]])
@@ -418,39 +362,25 @@ function M.parse_inline_package(line, line_nr)
 	return nil
 end
 
----@param line string
----@return string
-function M.trim_comments(line)
-	local uncommented = line:match("^([^#]*)#.*$")
-	return uncommented or line
-end
-
 ---comment
----@param buf integer
+---@param lines string[]
 ---@return JsonSection[]
 ---@return JsonPackage[]
----@return WorkingCrate[]
-function M.parse_packages(buf)
-	---@type string[]
-	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-
+function M.scan_package_doc(lines)
 	local sections = {}
 	local packages = {}
 
 	---@type JsonSection?
 	local dep_section
-	---@type WorkingCrate[]
-	local working_crates = {}
 
 	for i, line in ipairs(lines) do
-		-- line = M.trim_comments(line)
 		local line_nr = i - 1
 
 		---@type string, string
 		local section_text = line:match('^.-%"(dependencies)%".-$')
 		local dev_section_text = line:match('^.-%"(devDependencies)%".-$')
 		local section_end = line:find("^.-%}.-$")
-		local package_version = get_dependency_name_from_line(line)
+		local package_version = M.get_dependency_name_from_line(line)
 
 		---NOTE:
 		--- iterate over every line (replicate for devDependencies):
@@ -460,41 +390,30 @@ function M.parse_packages(buf)
 
 		--- 1. dependency section
 		if section_text == "dependencies" then
-			local section_start = line:find('^.-%"(dependencies)%".-$')
-			dep_section = M.parse_section(section_text, line_nr, section_start - 1, JsonSectionKind.DEFAULT)
+			local section_start = line:find('("dependencies")')
+			dep_section = M.scan_section(section_text, line_nr, section_start - 1, JsonSectionKind.DEFAULT)
 		elseif dev_section_text == "devDependencies" then
-			local section_start = line:find('^.-%"(devDependencies)%".-$')
-			dep_section = M.parse_section(dev_section_text, line_nr, section_start - 1, JsonSectionKind.DEV)
+			local section_start = line:find('("devDependencies")')
+			dep_section = M.scan_section(dev_section_text, line_nr, section_start - 1, JsonSectionKind.DEV)
 		end
 
 		--- 2. package line
 		if dep_section and package_version then
-			local crate = M.parse_inline_package(line, line_nr)
-			if crate then
-				crate.section = dep_section
-				table.insert(packages, Package.new(crate))
-			else
-				local name = line:match([[^%s*%"([^%s]+)%"]])
-				local name_s, name_e = line:find([[^%s*%"([^%s]+)%"]])
-				if name_s and name and name_e then
-					table.insert(working_crates, {
-						name = name,
-						line = line_nr,
-						col = Span.new(name_s - 1, name_e - 1),
-						kind = types.WorkingCrateKind.INLINE,
-					})
-				end
+			local pkg = M.scan_line(line, line_nr)
+			if pkg then
+				pkg.section = dep_section
+				table.insert(packages, Package.new(pkg))
 			end
 		end
 		--- 3. section closure
 		if dep_section and section_end then
-			dep_section.lines.e = line_nr
+			dep_section.lines.e = line_nr + 1
 			table.insert(sections, dep_section)
 			dep_section = nil
 		end
 	end
 
-	return sections, packages, working_crates
+	return sections, packages
 end
 
 return M

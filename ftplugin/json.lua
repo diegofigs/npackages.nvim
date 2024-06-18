@@ -3,10 +3,14 @@ if fname ~= "package.json" then
 	return
 end
 
-if vim.g.loaded_npackages then
-	return
-end
-vim.g.loaded_npackages = true
+if not vim.g.loaded_npackages then
+	vim.g.loaded_npackages = true
 
-local ft = require("npackages.ft")
-ft.setup()
+	local ft = require("npackages.ft")
+	ft.setup()
+end
+
+local state = require("npackages.state")
+if state.cfg.lsp.enabled then
+	require("npackages.lsp").start()
+end

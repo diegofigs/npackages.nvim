@@ -1,35 +1,43 @@
-local M = {}
+local Logger = {}
 
 --- Prints a message with a given highlight group
----@param message string | nil message to print
+---@param message any message to print
 ---@param highlight_group string | nil highlight group to use when printing the message
 ---@return nil
-local function __print(message, highlight_group)
-	vim.api.nvim_echo({ { "Npackages: " .. message, highlight_group or "" } }, true, {})
+local function __print(message, level, highlight_group)
+	vim.notify(
+		"Npackages: " .. vim.inspect(message),
+		level or vim.log.levels.TRACE,
+		{ title = "npackages.nvim", highlight_group = highlight_group }
+	)
 end
 
 --- Prints an error message
 --- For notifying the user about a critical failure
----@param message string | nil error message to print
----@return nil
-M.error = function(message)
-	__print(message, "ErrorMsg")
+Logger.trace = function(message)
+	__print(message)
+end
+
+Logger.debug = function(message)
+	__print(message, vim.log.levels.DEBUG)
+end
+
+--- Prints an error message
+--- For notifying the user about a critical failure
+Logger.error = function(message)
+	__print(message, vim.log.levels.ERROR, "ErrorMsg")
 end
 
 --- Prints a warning message
 --- For notifying the user about a non critical failure
----@param message string | nil warning message to print
----@return nil
-M.warn = function(message)
-	__print(message, "WarningMsg")
+Logger.warn = function(message)
+	__print(message, vim.log.levels.WARN("WarningMsg"))
 end
 
 --- Prints an info message
 --- For notifying the user about something not important
----@param message string | nil - info message to print
----@return nil
-M.info = function(message)
-	__print(message)
+Logger.info = function(message)
+	__print(message, vim.log.levels.INFO)
 end
 
-return M
+return Logger

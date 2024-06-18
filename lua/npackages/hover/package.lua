@@ -1,11 +1,11 @@
-local popup = require("npackages.popup.common")
+local hover = require("npackages.hover.common")
 local state = require("npackages.state")
 local util = require("npackages.util")
 
 local M = {}
 
 ---@class PackageContext
----@field crate ApiPackage
+---@field crate PackageMetadata
 ---@field created_index integer
 ---@field updated_index integer
 ---@field downloads_index integer
@@ -23,7 +23,7 @@ local function copy_value(ctx, line)
 		vim.fn.setreg(state.cfg.popup.copy_register, value)
 	end
 
-	local index = popup.item_index(line)
+	local index = hover.item_index(line)
 	if ctx.created_index == index then
 		copy(ctx.crate.created:display(state.cfg.date_format))
 	-- elseif ctx.downloads_index == index then
@@ -42,7 +42,7 @@ end
 ---@param ctx PackageContext
 ---@param line integer
 local function open_url(ctx, line)
-	local index = popup.item_index(line)
+	local index = hover.item_index(line)
 	if ctx.homepage_index == index then
 		util.open_url(ctx.crate.homepage)
 	elseif ctx.repo_index == index then
@@ -79,10 +79,10 @@ local function pill_hl_text(items)
 	return hl_text
 end
 
----@param crate ApiPackage
+---@param crate PackageMetadata
 ---@param opts WinOpts
 function M.open(crate, opts)
-	popup.type = popup.Type.CRATE
+	hover.type = hover.Type.CRATE
 
 	local title = string.format(state.cfg.popup.text.title, crate.name)
 	local text = state.cfg.popup.text
@@ -255,12 +255,12 @@ function M.open(crate, opts)
 		content_width = math.max(w, content_width)
 	end
 
-	local width = popup.win_width(title, content_width)
-	local height = popup.win_height(info_text)
+	local width = hover.win_width(title, content_width)
+	local height = hover.win_height(info_text)
 
 	---@param _win integer
 	---@param buf integer
-	popup.open_win(width, height, title, info_text, opts, function(_win, buf)
+	hover.open_win(width, height, title, info_text, opts, function(_win, buf)
 		for _, k in ipairs(state.cfg.popup.keys.copy_value) do
 			vim.api.nvim_buf_set_keymap(buf, "n", k, "", {
 				callback = function()

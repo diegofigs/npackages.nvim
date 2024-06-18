@@ -24,11 +24,6 @@ function M.wrap(f)
 	end
 end
 
----@class vim.loop.Timer
----@field start fun(self, integer, integer, function)
----@field stop fun(self)
----@field close fun(self)
-
 ---Throttle a function using tail calling
 ---@param f function
 ---@param timeout integer
@@ -45,13 +40,12 @@ function M.throttle(f, timeout)
 			timer:stop()
 		end
 
-		---@type integer
-		local rem = timeout - (vim.loop.now() - last_call)
+		local rem = timeout - (vim.uv.now() - last_call)
 		-- Schedule a tail call
 		if rem > 0 then
 			-- Reuse timer
 			if timer == nil then
-				timer = vim.loop.new_timer()
+				timer = vim.uv.new_timer()
 			end
 
 			local args = { ... }
@@ -69,16 +63,14 @@ function M.throttle(f, timeout)
 
 						-- If it was reset in the throttle call, it could be a shorter
 						-- interval between calls to f
-						---@type integer
-						last_call = vim.loop.now()
+						last_call = vim.uv.now()
 
 						f(unpack(args))
 					end)
 				)
 			end
 		else
-			---@type integer
-			last_call = vim.loop.now()
+			last_call = vim.uv.now()
 			f(...)
 		end
 	end

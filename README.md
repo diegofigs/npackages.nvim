@@ -82,60 +82,40 @@ so I suggest you define them in `vim.g.npackages.on_attach`
 
 Example:
 
+<!-- markdownlint-disable -->
+
 ```lua
 vim.g.npackages = {
   on_attach = function(bufnr)
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nt", "", {
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nt", "<cmd>Npackages toggle<cr>", {
       desc = "Toggle Package Versions",
-      callback = function()
-        vim.cmd.Npackages("toggle")
-      end,
     })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>na", "", {
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>na", "<cmd>Npackages add<cr>", {
       desc = "Add Package",
-      callback = function()
-        vim.cmd.Npackages("add")
-      end,
     })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nd", "", {
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nd", "<cmd>Npackages delete<cr>", {
       desc = "Delete Package",
-      callback = function()
-        vim.cmd.Npackages("delete")
-      end,
     })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nu", "", {
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nu", "<cmd>Npackages update<cr>", {
       desc = "Update Package",
-      callback = function()
-        vim.cmd.Npackages("update")
-      end,
     })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nc", "", {
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nc", "<cmd>Npackages change_version<cr>", {
       desc = "Change Version",
-      callback = function()
-        vim.cmd.Npackages("change_version")
-      end,
     })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>ni", "", {
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>ni", "<cmd>Npackages install<cr>", {
       desc = "Install Package Dependencies",
-      callback = function()
-        vim.cmd.Npackages("install")
-      end,
     })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nr", "", {
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nr", "<cmd>Npackages refresh<cr>", {
       desc = "Refresh Packages",
-      callback = function()
-        vim.cmd.Npackages("refresh")
-      end,
     })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nR", "", {
+    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nR", "<cmd>Npackages reload<cr>", {
       desc = "Reload Packages",
-      callback = function()
-        vim.cmd.Npackages("reload")
-      end,
     })
   end,
 }
 ```
+
+<!-- markdownlint-restore -->
 
 ## :books: Usage
 
@@ -306,4 +286,4 @@ vim.cmd.Npackages('change_version')
 [lint-url]: https://github.com/diegofigs/npackages.nvim/actions/workflows/lint.yml
 [luarocks-shield]: https://img.shields.io/luarocks/v/diegofigs/npackages.nvim?logo=lua&color=purple&style=for-the-badge
 [luarocks-url]: https://luarocks.org/modules/diegofigs/npackages.nvim
-[loc-shield]: https://tokei.rs/b1/github/diegofigs/npackages.nvim?category=code&style=for-the-badge
+[loc-shield]: https://img.shields.io/tokei/lines/github/diegofigs/npackages.nvim?style=for-the-badge&logo=adventofcode

@@ -128,7 +128,7 @@ entry(M.schema, {
 	type = BOOLEAN_TYPE,
 	default = true,
 	description = [[
-        Automatically run update when opening a Cargo.toml.
+        Automatically run update when opening a package.json.
     ]],
 })
 entry(M.schema, {
@@ -243,7 +243,7 @@ entry(M.schema, {
 	default = function(_) end,
 	default_text = "function(bufnr) end",
 	description = [[
-        Callback to run when a `Cargo.toml` file is opened.
+        Callback to run when a `package.json` file is opened.
 
         NOTE: Ignored if |crates-config-autoload| is disabled.
     ]],
@@ -429,35 +429,35 @@ entry(schema_diagnostic, {
 entry(schema_diagnostic, {
 	name = "section_dup_orig",
 	type = STRING_TYPE,
-	default = "Original dependency section is defined here",
+	default = "Original dependency section is first defined here",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_dup",
+	name = "package_dup",
 	type = STRING_TYPE,
-	default = "Duplicate package entry",
+	default = "Duplicate package",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_dup_orig",
+	name = "package_dup_orig",
 	type = STRING_TYPE,
-	default = "Original package entry is defined here",
+	default = "Original package is first defined here",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_novers",
+	name = "package_novers",
 	type = STRING_TYPE,
 	default = "Missing version requirement",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_error_fetching",
+	name = "package_error_fetching",
 	type = STRING_TYPE,
 	default = "Error fetching package",
 	hidden = true,
 })
 entry(schema_diagnostic, {
-	name = "crate_name_case",
+	name = "package_name_case",
 	type = STRING_TYPE,
 	default = "Incorrect package name casing",
 	hidden = true,
@@ -465,7 +465,7 @@ entry(schema_diagnostic, {
 entry(schema_diagnostic, {
 	name = "vers_upgrade",
 	type = STRING_TYPE,
-	default = "There is an upgrade available",
+	default = "Upgrade available",
 	hidden = true,
 })
 entry(schema_diagnostic, {
@@ -1606,7 +1606,7 @@ entry(schema_lsp, {
 entry(schema_lsp, {
 	name = "name",
 	type = STRING_TYPE,
-	default = "npackages.nvim",
+	default = "npackages_ls",
 	description = [[
         The lsp server name.
     ]],

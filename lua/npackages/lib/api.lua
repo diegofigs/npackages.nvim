@@ -1,9 +1,8 @@
-local semver = require("npackages.semver")
+local semver = require("npackages.lib.semver")
 local state = require("npackages.state")
-local time = require("npackages.time")
+local time = require("npackages.lib.time")
+local json = require("npackages.util.json")
 local DateTime = time.DateTime
-local types = require("npackages.types")
-local ApiDependencyKind = types.ApiDependencyKind
 
 local M = {
 	---@type table<string,PackageJob>
@@ -26,7 +25,7 @@ local M = {
 
 ---@class PackageJob
 ---@field job Job
----@field callbacks fun(crate: ApiPackage|nil, cancelled: boolean)[]
+---@field callbacks fun(crate: PackageMetadata|nil, cancelled: boolean)[]
 
 ---@class DepsJob
 ---@field job Job
@@ -39,12 +38,52 @@ local M = {
 ---@class QueuedJob
 ---@field kind JobKind
 ---@field name string
----@field crate_callbacks fun(crate: ApiPackage|nil, cancelled: boolean)[]
+---@field crate_callbacks fun(crate: PackageMetadata|nil, cancelled: boolean)[]
 ---@field version string
 ---@field deps_callbacks fun(deps: ApiDependency[]|nil, cancelled: boolean)[]
 ---@class QueuedSearchJob
 ---@field name string
 ---@field callbacks fun(deps: ApiPackageSummary[]?, cancelled: boolean)[]
+
+---@class ApiPackageSummary
+---@field name string
+---@field description string
+---@field newest_version string
+
+---@class PackageMetadata
+---@field name string
+---@field description string
+---@field created DateTime
+---@field updated DateTime
+-- ---@field downloads integer
+---@field homepage string|nil
+---@field repository string|nil
+-- ---@field documentation string|nil
+-- ---@field categories string[]
+---@field keywords string[]
+---@field versions ApiVersion[]
+
+---@class ApiVersion
+---@field num string
+---@field parsed SemVer
+---@field created DateTime
+---@field deps ApiDependency[]|nil
+
+---@class ApiDependency
+---@field name string
+---@field opt boolean
+---@field kind ApiDependencyKind
+---@field vers ApiDependencyVers
+
+---@class ApiDependencyVers
+---@field reqs Requirement[]
+---@field text string
+
+---@class Requirement
+---@field cond Cond
+---@field cond_col Span
+---@field vers SemVer
+---@field vers_col Span
 
 ---@enum JobKind
 local JobKind = {
@@ -52,9 +91,15 @@ local JobKind = {
 	DEPS = 2,
 }
 
+---@enum ApiDependencyKind
+local ApiDependencyKind = {
+	NORMAL = 1,
+	DEV = 2,
+	BUILD = 3,
+}
+
 local SIGTERM = 15
 local ENDPOINT = "https://registry.npmjs.org"
----@type string
 local USERAGENT = vim.fn.shellescape("npackages.nvim (https://github.com/diegofigs/npackages.nvim)")
 
 local DEPENDENCY_KIND_MAP = {
@@ -63,35 +108,13 @@ local DEPENDENCY_KIND_MAP = {
 	-- ["build"] = ApiDependencyKind.BUILD,
 }
 
----@class vim.json.DecodeOpts
----@class DecodeOpts
----@field luanil Luanil
-
----@class Luanil
----@field object boolean
----@field array boolean
-
----@type vim.json.DecodeOpts
-local JSON_DECODE_OPTS = { luanil = { object = true, array = true } }
-
----comment
----@param json_str string
----@return table|nil
-local function parse_json(json_str)
-	---@type any
-	local json = vim.json.decode(json_str, JSON_DECODE_OPTS)
-	if json and type(json) == "table" then
-		return json
-	end
-end
-
 ---@param url string
 ---@param on_exit fun(data: string|nil, cancelled: boolean)
 ---@return Job|nil
 local function start_job(url, on_exit)
 	---@type Job
 	local job = {}
-	local stdout = vim.loop.new_pipe()
+	local stdout = vim.uv.new_pipe()
 
 	---@type string|nil
 	local stdout_str = nil
@@ -104,12 +127,12 @@ local function start_job(url, on_exit)
 	---@param code integer
 	---@param _signal integer
 	---@type uv_process_t, integer
-	handle = vim.loop.spawn("curl", opts, function(code, _signal)
+	handle = vim.uv.spawn("curl", opts, function(code, _signal)
 		handle:close()
 
 		local success = code == 0
 
-		local check = vim.loop.new_check()
+		local check = vim.uv.new_check()
 		if check ~= nil and stdout ~= nil then
 			check:start(function()
 				if not stdout:is_closing() then
@@ -160,7 +183,7 @@ local function cancel_job(job)
 end
 
 ---@param name string
----@param callbacks fun(crate: ApiPackage|nil, cancelled: boolean)[]
+---@param callbacks fun(crate: PackageMetadata|nil, cancelled: boolean)[]
 local function enqueue_crate_job(name, callbacks)
 	for _, j in ipairs(M.queued_jobs) do
 		if j.kind == JobKind.CRATE and j.name == name then
@@ -214,15 +237,15 @@ end
 ---@param json_str string
 ---@return ApiPackageSummary[]?
 function M.parse_search(json_str)
-	local json = parse_json(json_str)
-	if not (json and json.objects) then
+	local decoded = json.decode(json_str)
+	if not (decoded and decoded.objects) then
 		return
 	end
 
 	---@type ApiPackageSummary[]
 	local search = {}
 	---@diagnostic disable-next-line: no-unknown
-	for _, c in ipairs(json.objects) do
+	for _, c in ipairs(decoded.objects) do
 		---@type ApiPackageSummary
 		local result = {
 			name = c.package.name,
@@ -297,17 +320,17 @@ function M.fetch_search(name)
 end
 
 ---@param json_str string
----@return ApiPackage|nil
-function M.parse_crate(json_str)
-	local json = parse_json(json_str)
-	if not json then
+---@return PackageMetadata|nil
+function M.parse_package(json_str)
+	local decoded = json.decode(json_str)
+	if not decoded then
 		return nil
 	end
 
 	---@type table<string,any>
-	local p = json
+	local p = decoded
 
-	---@type ApiPackage
+	---@type PackageMetadata
 	local crate = {
 		name = p.name,
 		description = assert(p.description),
@@ -322,33 +345,13 @@ function M.parse_crate(json_str)
 		versions = {},
 	}
 
-	-- ---@diagnostic disable-next-line: no-unknown
-	-- for _, ct_id in ipairs(p.categories) do
-	-- 	---@diagnostic disable-next-line: no-unknown
-	-- 	for _, ct in ipairs(json.categories) do
-	-- 		if ct.id == ct_id then
-	-- 			table.insert(crate.categories, ct.category)
-	-- 		end
-	-- 	end
-	-- end
-
-	-- ---@diagnostic disable-next-line: no-unknown
-	-- for _, kw_id in ipairs(p.keywords) do
-	-- 	---@diagnostic disable-next-line: no-unknown
-	-- 	for _, kw in ipairs(json.keywords) do
-	-- 		if kw.id == kw_id then
-	-- 			table.insert(crate.keywords, kw.keyword)
-	-- 		end
-	-- 	end
-	-- end
-
 	---@diagnostic disable-next-line: no-unknown
-	for _, v in pairs(json.versions) do
+	for _, v in pairs(decoded.versions) do
 		---@type ApiVersion
 		local version = {
 			num = v.version,
 			parsed = semver.parse_version(v.version),
-			created = assert(DateTime.parse_iso_8601(json.time[v.version])),
+			created = assert(DateTime.parse_iso_8601(decoded.time[v.version])),
 		}
 
 		table.insert(crate.versions, version)
@@ -362,7 +365,7 @@ function M.parse_crate(json_str)
 end
 
 ---@param name string
----@param callbacks fun(crate: ApiPackage|nil, cancelled: boolean)[]
+---@param callbacks fun(crate: PackageMetadata|nil, cancelled: boolean)[]
 local function fetch_crate(name, callbacks)
 	local existing = M.crate_jobs[name]
 	if existing then
@@ -380,10 +383,10 @@ local function fetch_crate(name, callbacks)
 	---@param json_str string|nil
 	---@param cancelled boolean
 	local function on_exit(json_str, cancelled)
-		---@type ApiPackage|nil
+		---@type PackageMetadata|nil
 		local crate
 		if not cancelled and json_str then
-			local ok, c = pcall(M.parse_crate, json_str)
+			local ok, c = pcall(M.parse_package, json_str)
 			if ok then
 				crate = c
 			end
@@ -413,9 +416,9 @@ local function fetch_crate(name, callbacks)
 end
 
 ---@param name string
----@return ApiPackage|nil, boolean
+---@return PackageMetadata|nil, boolean
 function M.fetch_crate(name)
-	---@param resolve fun(crate: ApiPackage|nil, cancelled: boolean)
+	---@param resolve fun(crate: PackageMetadata|nil, cancelled: boolean)
 	return coroutine.yield(function(resolve)
 		fetch_crate(name, { resolve })
 	end)
@@ -424,15 +427,15 @@ end
 ---@param json_str string
 ---@return ApiDependency[]|nil
 function M.parse_deps(json_str)
-	local json = parse_json(json_str)
-	if not (json and json.dependencies) then
+	local decoded = json.decode(json_str)
+	if not (decoded and decoded.dependencies) then
 		return
 	end
 
 	---@type ApiDependency[]
 	local dependencies = {}
 	---@diagnostic disable-next-line: no-unknown
-	for name, vers in pairs(json.dependencies) do
+	for name, vers in pairs(decoded.dependencies) do
 		---@type ApiDependency
 		local dependency = {
 			name = name,
@@ -532,15 +535,15 @@ function M.is_fetching_search(name)
 end
 
 ---@param name string
----@param callback fun(crate: ApiPackage|nil, cancelled: boolean)
+---@param callback fun(crate: PackageMetadata|nil, cancelled: boolean)
 local function add_crate_callback(name, callback)
 	table.insert(M.crate_jobs[name].callbacks, callback)
 end
 
 ---@param name string
----@return ApiPackage|nil, boolean
+---@return PackageMetadata|nil, boolean
 function M.await_crate(name)
-	---@param resolve fun(crate: ApiPackage|nil, cancelled: boolean)
+	---@param resolve fun(crate: PackageMetadata|nil, cancelled: boolean)
 	return coroutine.yield(function(resolve)
 		add_crate_callback(name, resolve)
 	end)

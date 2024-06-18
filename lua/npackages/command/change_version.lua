@@ -1,10 +1,10 @@
-local constants = require("npackages.constants")
-local get_dependency_name_from_current_line = require("npackages.utils.get_dependency_name_from_current_line")
-local job = require("npackages.utils.job")
+local npm = require("npackages.npm")
+local job = require("npackages.util.job")
 local loading = require("npackages.ui.loading")
-local reload = require("npackages.utils.reload")
+local reload = require("npackages.ui.reload")
 local state = require("npackages.state")
 local util = require("npackages.util")
+local scanner = require("npackages.lsp.scanner")
 
 --- Returns the change version command based on package manager
 ---@param dependency_name string dependency for which to get the command
@@ -12,13 +12,13 @@ local util = require("npackages.util")
 ---@param package_manager string
 ---@return string
 local function get_change_version_command(dependency_name, version, package_manager)
-	if package_manager == constants.PACKAGE_MANAGERS.yarn then
+	if package_manager == npm.PACKAGE_MANAGERS.yarn then
 		if state.has_old_yarn then
 			return "yarn upgrade " .. dependency_name .. "@" .. version
 		end
 
 		return "yarn up " .. dependency_name .. "@" .. version
-	elseif package_manager == constants.PACKAGE_MANAGERS.pnpm then
+	elseif package_manager == npm.PACKAGE_MANAGERS.pnpm then
 		return "pnpm add " .. dependency_name .. "@" .. version
 	else
 		return "npm install " .. dependency_name .. "@" .. version
@@ -30,7 +30,7 @@ end
 ---@param package_manager string
 ---@return string
 local function get_version_list_command(dependency_name, package_manager)
-	if package_manager == constants.PACKAGE_MANAGERS.pnpm then
+	if package_manager == npm.PACKAGE_MANAGERS.pnpm then
 		return "pnpm view " .. dependency_name .. " versions --json"
 	else
 		return "npm view " .. dependency_name .. " versions --json"
@@ -62,7 +62,9 @@ end
 --- Runs the change version action
 -- @return nil
 return function()
-	local dependency_name = get_dependency_name_from_current_line()
+	local current_line = vim.fn.getline(".")
+
+	local dependency_name = scanner.get_dependency_name_from_line(current_line)
 
 	if not dependency_name then
 		return
@@ -83,7 +85,7 @@ return function()
 			vim.ui.select(create_select_items(versions), {
 				prompt = "Change version of `" .. dependency_name .. "`",
 			}, function(selected_version)
-				if selected_version ~= nil then
+				if selected_version ~= "" and selected_version ~= nil then
 					local change_id = loading.new("| 󰇚 Installing " .. dependency_name .. "@" .. selected_version)
 					job({
 						json = false,

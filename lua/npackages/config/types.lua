@@ -52,8 +52,8 @@
 ---@field workspace_section_has_target string
 ---@field section_dup string
 ---@field section_dup_orig string
----@field crate_dup string
----@field crate_dup_orig string
+---@field package_dup string
+---@field package_dup_orig string
 ---@field crate_novers string
 ---@field crate_error_fetching string
 ---@field crate_name_case string

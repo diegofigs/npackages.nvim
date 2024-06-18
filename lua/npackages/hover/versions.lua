@@ -1,10 +1,37 @@
-local edit = require("npackages.edit")
-local json = require("npackages.json")
-local popup = require("npackages.popup.common")
+local analyzer = require("npackages.lsp.analyzer")
+local hover = require("npackages.hover.common")
 local state = require("npackages.state")
 local util = require("npackages.util")
 
+local types = require("npackages.types")
+local Span = types.Span
+
 local M = {}
+
+---@param buf integer
+---@param package JsonPackage
+---@param text string
+---@return Span
+local function insert_version(buf, package, text)
+	local t = text
+	if state.cfg.insert_closing_quote and not package.vers.quote.e then
+		t = text .. package.vers.quote.s
+	end
+	local line = package.vers.line
+
+	vim.api.nvim_buf_set_text(buf, line, package.vers.col.s, line, package.vers.col.e, { t })
+	return Span.pos(line)
+end
+
+---@param buf integer
+---@param package JsonPackage
+---@param version SemVer
+---@param alt boolean|nil
+---@return Span
+local function set_version(buf, package, version, alt)
+	local text = analyzer.version_text(package, version, alt)
+	return insert_version(buf, package, text)
+end
 
 ---@class VersContext
 ---@field buf integer
@@ -15,45 +42,24 @@ local M = {}
 ---@param line integer
 ---@param alt boolean|nil
 local function select_version(ctx, line, alt)
-	local index = popup.item_index(line)
+	local index = hover.item_index(line)
 	local crate = ctx.crate
 	local version = ctx.versions[index]
 	if not version then
 		return
 	end
 
-	---@type Span
-	local line_span
-	line_span = edit.set_version(ctx.buf, crate, version.parsed, alt)
-
-	-- update only crate version position, not the parsed requirements
-	-- (or any other semantic information), so selecting another version
-	-- with `smart_insert` will behave predictable
-	if crate.syntax == "plain" or crate.syntax == "inline_table" then
-		local line_nr = line_span.s
-		---@type string
-		local text = vim.api.nvim_buf_get_lines(ctx.buf, line_nr, line_nr + 1, false)[1]
-		text = json.trim_comments(text)
-
-		local c = json.parse_inline_package(text, line_nr)
-		if c and c.vers then
-			crate.vers = crate.vers or c.vers
-			crate.vers.line = line_nr
-			crate.vers.col = c.vers.col
-			crate.vers.decl_col = c.vers.decl_col
-			crate.vers.quote = c.vers.quote
-		end
-	end
+	set_version(ctx.buf, crate, version.parsed, alt)
 
 	if state.cfg.popup.hide_on_select then
-		popup.hide()
+		hover.hide()
 	end
 end
 
 ---@param versions ApiVersion[]
 ---@param line integer
 local function copy_version(versions, line)
-	local index = popup.item_index(line)
+	local index = hover.item_index(line)
 	local version = versions[index]
 	if not version then
 		return
@@ -66,7 +72,7 @@ end
 ---@param versions ApiVersion[]
 ---@param opts WinOpts
 function M.open(crate, versions, opts)
-	popup.type = popup.Type.VERSIONS
+	hover.type = hover.Type.VERSIONS
 
 	local title = string.format(state.cfg.popup.text.title, crate:package())
 	local vers_width = 0
@@ -112,11 +118,11 @@ function M.open(crate, versions, opts)
 		end
 	end
 
-	local width = popup.win_width(title, vers_width + date_width)
-	local height = popup.win_height(versions)
+	local width = hover.win_width(title, vers_width + date_width)
+	local height = hover.win_height(versions)
 	---@param _win integer
 	---@param buf integer
-	popup.open_win(width, height, title, versions_text, opts, function(_win, buf)
+	hover.open_win(width, height, title, versions_text, opts, function(_win, buf)
 		local ctx = {
 			buf = util.current_buf(),
 			crate = crate,
