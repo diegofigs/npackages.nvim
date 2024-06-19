@@ -1,5 +1,5 @@
 local logger = require("npackages.logger")
-local json = require("npackages.util.json")
+local nio = require("nio")
 
 ---@class JobProps
 ---@field command string - string command to run
@@ -7,20 +7,25 @@ local json = require("npackages.util.json")
 ---@field on_error? function - function to invoke if the command fails
 ---@field on_start? function - callback to invoke before the job starts
 ---@field ignore_error? boolean - ignore non-zero exit codes (npm outdated throws 1 when getting the list)
----@field json? boolean - parse as json
+---@field output? boolean log output
 
 --- Runs an async job
 ---@param props JobProps
 return function(props)
-	local value = ""
-
-	pcall(props.on_start)
+	local ignore_errors = props.ignore_error or false
+	local log_output = props.output or false
 
 	local function on_error()
 		logger.error("Error running " .. props.command .. ". Try running manually.")
 
-		if props.on_error ~= nil then
-			props.on_error()
+		pcall(props.on_error)
+	end
+
+	local function on_exit(exit_code, message)
+		if exit_code == 0 then
+			logger.info(message)
+		else
+			logger.error(message)
 		end
 	end
 
@@ -37,31 +42,33 @@ return function(props)
 		cwd = string.sub(file_path, 1, -13)
 	end
 
-	vim.fn.jobstart(props.command, {
+	local out = ""
+	local err = ""
+	local out_count = 0
+	local err_count = 0
+
+	pcall(props.on_start)
+	nio.fn.jobstart(props.command, {
 		cwd = cwd,
 		on_exit = function(_, exit_code)
-			if exit_code ~= 0 and not props.ignore_error then
-				on_error()
+			if log_output then
+				on_exit(exit_code, string.format("(%s) exited with (%s):\n%s\n%s", props.command, exit_code, out, err))
+			end
 
+			if exit_code ~= 0 and not ignore_errors then
+				on_error()
 				return
 			end
 
-			if props.json then
-				local ok, json_value = pcall(json.decode, value)
-
-				if ok then
-					props.on_success(json_value)
-
-					return
-				end
-
-				on_error()
-			else
-				props.on_success(value)
-			end
+			props.on_success(out)
 		end,
 		on_stdout = function(_, stdout)
-			value = value .. table.concat(stdout)
+			out_count = out_count + 1
+			out = out .. "\n" .. table.concat(stdout)
+		end,
+		on_stderr = function(_, stderr)
+			err_count = err_count + 1
+			err = err .. "\n" .. table.concat(stderr)
 		end,
 	})
 end

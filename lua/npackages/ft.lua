@@ -2,7 +2,7 @@ local command = require("npackages.command")
 ---@diagnostic disable-next-line: different-requires
 local config = require("npackages.config.internal")
 local highlight = require("npackages.highlight")
-local npm = require("npackages.npm")
+local npm = require("npackages.lib.npm")
 local state = require("npackages.state")
 local util = require("npackages.util")
 local hover = require("npackages.hover")

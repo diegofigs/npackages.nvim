@@ -1,9 +1,10 @@
-local npm = require("npackages.npm")
-local job = require("npackages.util.job")
+local npm = require("npackages.lib.npm")
+local job = require("npackages.lib.job")
 local reload = require("npackages.ui.reload")
 local state = require("npackages.state")
 local util = require("npackages.util")
 local loading = require("npackages.ui.loading")
+local nio = require("nio")
 
 local DEPENDENCY_TYPE = {
 	production = "prod",
@@ -35,36 +36,39 @@ local function get_command(type, dependency_name)
 	end
 end
 
+local buf = util.current_buf()
 --- Runs the install new dependency action
 -- @return nil
 return function()
-	vim.ui.select({ "Production", "Development", "Cancel" }, {
-		prompt = "Select Dependency Type",
-		---@param selected_dependency_type string|nil
-	}, function(selected_dependency_type)
+	nio.run(function()
+		local selected_dependency_type = nio.ui.select({ "Production", "Development", "Cancel" }, {
+			prompt = "Select Dependency Type",
+		})
+
 		if selected_dependency_type == "Production" or selected_dependency_type == "Development" then
-			vim.ui.input({
+			---@diagnostic disable-next-line: missing-fields
+			local dependency_name = nio.ui.input({
 				prompt = "Enter Dependency Name",
-			}, function(dependency_name)
-				if dependency_name ~= "" and dependency_name ~= nil then
-					local id = loading.new("| 󰇚 Installing " .. dependency_name .. " dependency")
-					local type = DEPENDENCY_TYPE[selected_dependency_type:lower()]
-					job({
-						json = false,
-						command = get_command(type, dependency_name),
-						on_start = function()
-							loading.start(id)
-						end,
-						on_success = function()
-							loading.stop(id)
-							reload()
-						end,
-						on_error = function()
-							loading.stop(id)
-						end,
-					})
-				end
-			end)
+			})
+
+			if dependency_name ~= "" and dependency_name ~= nil then
+				local id = loading.new("| 󰇚 Installing " .. dependency_name .. " dependency")
+				local type = DEPENDENCY_TYPE[selected_dependency_type:lower()]
+				job({
+					command = get_command(type, dependency_name),
+					on_start = function()
+						loading.start(id)
+					end,
+					on_success = function()
+						loading.stop(id)
+						reload(buf)
+					end,
+					on_error = function()
+						loading.stop(id)
+					end,
+					output = true,
+				})
+			end
 		end
-	end)
+	end, nil)
 end

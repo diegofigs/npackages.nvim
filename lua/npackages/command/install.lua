@@ -1,5 +1,5 @@
-local npm = require("npackages.npm")
-local job = require("npackages.util.job")
+local npm = require("npackages.lib.npm")
+local job = require("npackages.lib.job")
 local loading = require("npackages.ui.loading")
 local state = require("npackages.state")
 local util = require("npackages.util")
@@ -32,7 +32,6 @@ return function()
 		if choice == "Confirm" then
 			local id = loading.new("| 󰑓 Syncing dependencies")
 			job({
-				json = false,
 				command = cmd,
 				on_start = function()
 					loading.start(id)
@@ -43,6 +42,7 @@ return function()
 				on_error = function()
 					loading.stop(id)
 				end,
+				output = true,
 			})
 		end
 	end)

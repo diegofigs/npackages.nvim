@@ -1,5 +1,5 @@
-local npm = require("npackages.npm")
-local job = require("npackages.util.job")
+local npm = require("npackages.lib.npm")
+local job = require("npackages.lib.job")
 local loading = require("npackages.ui.loading")
 local reload = require("npackages.ui.reload")
 local state = require("npackages.state")
@@ -31,6 +31,7 @@ return function()
 		return
 	end
 
+	local buf = util.current_buf()
 	local cmd = get_command(dependency_name)
 	vim.ui.select({ "Confirm", "Cancel" }, {
 		prompt = "Run `" .. cmd .. "`",
@@ -38,18 +39,18 @@ return function()
 		if choice == "Confirm" then
 			local id = loading.new("|  Deleting " .. dependency_name .. " dependency")
 			job({
-				json = false,
 				command = cmd,
 				on_start = function()
 					loading.start(id)
 				end,
 				on_success = function()
 					loading.stop(id)
-					reload()
+					reload(buf)
 				end,
 				on_error = function()
 					loading.stop(id)
 				end,
+				output = true,
 			})
 		end
 	end)

@@ -1,10 +1,11 @@
-local npm = require("npackages.npm")
-local job = require("npackages.util.job")
+local npm = require("npackages.lib.npm")
+local job = require("npackages.lib.job")
 local loading = require("npackages.ui.loading")
 local reload = require("npackages.ui.reload")
 local state = require("npackages.state")
 local util = require("npackages.util")
 local scanner = require("npackages.lsp.scanner")
+local nio = require("nio")
 
 --- Returns the change version command based on package manager
 ---@param dependency_name string dependency for which to get the command
@@ -73,39 +74,54 @@ return function()
 	local id = loading.new("| 󰇚 Fetching " .. dependency_name .. " versions")
 
 	local package_manager = state.package_manager[util.current_buf()]
-	job({
-		json = true,
-		command = get_version_list_command(dependency_name, package_manager),
-		on_start = function()
-			loading.start(id)
-		end,
-		on_success = function(versions)
+	local buf = util.current_buf()
+
+	nio.run(function()
+		loading.start(id)
+		local npm_versions_cmd = get_version_list_command(dependency_name, package_manager)
+		local npm_versions_args = vim.split(npm_versions_cmd, " ")
+		local versions_cmd = table.remove(npm_versions_args, 1)
+		local versions_args = npm_versions_args
+
+		local process = nio.process.run({
+			cmd = versions_cmd,
+			args = versions_args,
+		})
+		if process then
+			local output = process.stdout.read()
+			process.close()
 			loading.stop(id)
 
-			vim.ui.select(create_select_items(versions), {
+			local ok, versions = pcall(nio.fn.json_decode, output)
+
+			if not ok then
+				return
+			end
+
+			local selected_version = nio.ui.select(create_select_items(versions), {
 				prompt = "Change version of `" .. dependency_name .. "`",
-			}, function(selected_version)
-				if selected_version ~= "" and selected_version ~= nil then
-					local change_id = loading.new("| 󰇚 Installing " .. dependency_name .. "@" .. selected_version)
-					job({
-						json = false,
-						command = get_change_version_command(dependency_name, selected_version, package_manager),
-						on_start = function()
-							loading.start(change_id)
-						end,
-						on_success = function()
-							loading.stop(change_id)
-							reload()
-						end,
-						on_error = function()
-							loading.stop(change_id)
-						end,
-					})
-				end
-			end)
-		end,
-		on_error = function()
+			})
+
+			if selected_version ~= "" and selected_version ~= nil then
+				local change_id = loading.new("| 󰇚 Installing " .. dependency_name .. "@" .. selected_version)
+
+				job({
+					command = get_change_version_command(dependency_name, selected_version, package_manager),
+					on_start = function()
+						loading.start(change_id)
+					end,
+					on_success = function()
+						loading.stop(change_id)
+						reload(buf)
+					end,
+					on_error = function()
+						loading.stop(change_id)
+					end,
+					output = true,
+				})
+			end
+		else
 			loading.stop(id)
-		end,
-	})
+		end
+	end, nil)
 end
