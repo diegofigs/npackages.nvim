@@ -4,6 +4,7 @@ version = "scm-1"
 
 dependencies = {
 	"lua >= 5.1",
+	"nvim-nio",
 }
 
 test_dependencies = {
