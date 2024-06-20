@@ -1482,11 +1482,11 @@ entry(schema_completion_cmp_kind_hl, {
     ]],
 })
 entry(schema_completion_cmp_kind_hl, {
-	name = "feature",
+	name = "package",
 	type = STRING_TYPE,
-	default = "CmpItemKindFeature",
+	default = "CmpItemKindPackage",
 	description = [[
-        Highlight group used for the feature kind text in the |nvim-cmp| completion menu.
+        Highlight group used for the package kind text in the |nvim-cmp| completion menu.
     ]],
 })
 

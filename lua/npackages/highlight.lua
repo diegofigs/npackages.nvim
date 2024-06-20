@@ -35,7 +35,7 @@ local highlights = {
 	{ "NpackagesNvimPopupLoading", { default = true, link = "Special" } },
 
 	{ "CmpItemKindVersion", { default = true, link = "Special" } },
-	{ "CmpItemKindFeature", { default = true, link = "Special" } },
+	{ "CmpItemKindPackage", { default = true, link = "Special" } },
 }
 
 function M.create_highlights()
