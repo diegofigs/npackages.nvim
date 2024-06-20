@@ -1,8 +1,8 @@
-local job = require("npackages.util.job")
+local job = require("npackages.lib.job")
 local logger = require("npackages.logger")
 local state = require("npackages.state")
 local util = require("npackages.util")
-local json = require("npackages.util.json")
+local json = require("npackages.lib.json")
 
 local M = {}
 

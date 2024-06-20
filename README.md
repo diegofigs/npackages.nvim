@@ -41,7 +41,12 @@
 
 - `neovim >= 0.9`
 - `curl`
+- [nvim-nio](https://github.com/nvim-neotest/nvim-nio)
+
+### Optional
+
 - `vim.ui` implementation such as [dressing.nvim](https://github.com/stevearc/dressing.nvim)
+- `$/progress` display such as [noice.nvim](https://github.com/folke/noice.nvim)
 
 ## :inbox_tray: Installation
 
@@ -54,7 +59,7 @@ Plug 'diegofigs/npackages.nvim'
 [**packer.nvim**](https://github.com/wbthomason/packer.nvim)
 
 ```lua
-use 'diegofigs/npackages.nvim'
+use { 'diegofigs/npackages.nvim', requires = { "nvim-neotest/nvim-nio" } }
 ```
 
 [**lazy.nvim**](https://github.com/folke/lazy.nvim)
@@ -62,6 +67,7 @@ use 'diegofigs/npackages.nvim'
 ```lua
 {
   'diegofigs/npackages.nvim',
+  dependencies = { "nvim-neotest/nvim-nio" }
   lazy = false, -- This plugin is already lazy
 }
 ```
