@@ -48,7 +48,7 @@ local function diagnose(params, callback)
 		return {}
 	end
 
-	local pkg_total = tablelength(packages) + 1
+	local pkg_total = tablelength(packages)
 	local pkg_count = 1
 	for _, pkg in pairs(packages) do
 		local api_package = state.api_cache[pkg:package()]

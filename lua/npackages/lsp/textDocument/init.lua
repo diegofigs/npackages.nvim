@@ -1,5 +1,9 @@
 local state = require("npackages.lsp.state")
 local core = require("npackages.lsp.core")
+local hover = require("npackages.lsp.textDocument.hover")
+local codeAction = require("npackages.lsp.textDocument.codeAction")
+local diagnostic = require("npackages.lsp.textDocument.diagnostic")
+local completion = require("npackages.lsp.textDocument.completion")
 
 local textDocument = {}
 
@@ -37,7 +41,6 @@ end
 ---@param callback fun(err, res)
 function textDocument.didSave(params, callback)
 	local doc = params.textDocument
-	state.documents[doc.uri].text = params.text
 
 	core.update(doc.uri)
 	callback(nil, nil)
@@ -50,6 +53,32 @@ function textDocument.didClose(params, callback)
 	state.documents[doc.uri] = nil
 
 	callback(nil, nil)
+end
+
+---@param params lsp.HoverParams
+---@param callback fun(err: nil, res: lsp.Hover|nil)
+textDocument.hover = function(params, callback)
+	local result = hover.hover(params)
+	callback(nil, result)
+end
+
+---@param params lsp.CodeActionParams
+---@param callback fun(err: nil, res: lsp.CodeAction[]|nil)
+textDocument.codeAction = function(params, callback)
+	local result = codeAction.get(params)
+	callback(nil, result)
+end
+
+---@param params lsp.DocumentDiagnosticParams
+---@param callback fun(err, res: lsp.DocumentDiagnosticReport)
+textDocument.diagnostic = function(params, callback)
+	diagnostic.diagnose(params, callback)
+end
+
+---@param params lsp.CompletionParams
+---@param callback fun(err, result: vim.lsp.CompletionResult|nil)
+textDocument.completion = function(params, callback)
+	completion.complete(params, callback)
 end
 
 return textDocument

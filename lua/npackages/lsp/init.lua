@@ -1,6 +1,6 @@
 local server = require("npackages.lsp.server")
 local lsp_state = require("npackages.lsp.state")
-local state = require("npackages.state")
+local plugin = require("npackages.state")
 local util = require("npackages.util")
 local logger = require("npackages.logger")
 
@@ -19,35 +19,30 @@ local function reuse_client(client, config)
 end
 
 function M.start()
-	local commands = {
-		---@param cmd lsp.Command
-		open_url = function(cmd)
-			local url = cmd.arguments[1]
-			if url and type(url) == "string" then
-				util.open_url(url)
-			end
-		end,
-	}
-
-	local init_options = {
-		codeAction = state.cfg.lsp.actions,
-		completion = state.cfg.lsp.completion,
-		hover = state.cfg.lsp.hover,
-	}
-
 	local client_id = vim.lsp.start({
-		name = state.cfg.lsp.name,
+		name = plugin.cfg.lsp.name,
 		cmd = server(),
 		root_dir = vim.fs.root(0, { "package.json" }),
 		filetypes = { "json" },
-		autostart = state.cfg.autoload,
-		commands = commands,
-		init_options = init_options,
+		autostart = plugin.cfg.autoload,
+		init_options = {
+			codeAction = plugin.cfg.lsp.actions,
+			completion = plugin.cfg.lsp.completion,
+			hover = plugin.cfg.lsp.hover,
+		},
+		commands = {
+			open_url = function(cmd)
+				local url = cmd.arguments[1]
+				if url and type(url) == "string" then
+					util.open_url(url)
+				end
+			end,
+		},
 		on_init = function(client, _)
 			lsp_state.session.client_id = client.id
 		end,
 		on_attach = function(client, bufnr)
-			state.cfg.lsp.on_attach(client, bufnr)
+			plugin.cfg.lsp.on_attach(client, bufnr)
 		end,
 		on_error = function(code, err)
 			logger.error({ code = code, err = err })
@@ -61,11 +56,7 @@ function M.start()
 		silent = false,
 	})
 
-	if client_id then
-		return client_id
-	else
-		return
-	end
+	return client_id
 end
 
 return M

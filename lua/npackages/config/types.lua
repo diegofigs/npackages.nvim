@@ -54,9 +54,9 @@
 ---@field section_dup_orig string
 ---@field package_dup string
 ---@field package_dup_orig string
----@field crate_novers string
----@field crate_error_fetching string
----@field crate_name_case string
+---@field package_novers string
+---@field package_error_fetching string
+---@field package_name_case string
 ---@field vers_upgrade string
 ---@field vers_pre string
 ---@field vers_yanked string
@@ -191,7 +191,7 @@
 
 ---@class CmpKindHighlightConfig
 ---@field version string
----@field feature string
+---@field package string
 
 ---@class CoqConfig
 ---@field enabled boolean
@@ -382,7 +382,7 @@
 
 ---@class npackages.UserCmpKindHighlightConfig
 ---@field public version? string
----@field public feature? string
+---@field public package? string
 
 ---@class npackages.UserCoqConfig
 ---@field public enabled? boolean

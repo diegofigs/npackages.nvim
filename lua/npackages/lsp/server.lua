@@ -1,38 +1,33 @@
-local codeAction = require("npackages.lsp.codeAction")
-local completion = require("npackages.lsp.completion")
-local textDocument = require("npackages.lsp.textDocument")
-local hover = require("npackages.lsp.hover")
-local logger = require("npackages.logger")
 local state = require("npackages.lsp.state")
-local diagnostic = require("npackages.lsp.diagnostic")
+local textDocument = require("npackages.lsp.textDocument")
+local completion = require("npackages.lsp.textDocument.completion")
+local logger = require("npackages.logger")
+
+---@type lsp.ServerCapabilities
+local server_capabilities = {
+	textDocumentSync = {
+		change = 1,
+		openClose = true,
+		save = true,
+	},
+	diagnosticProvider = {
+		workDoneProgress = true,
+		workspaceDiagnostics = false,
+		interFileDependencies = false,
+	},
+}
 
 local handlers = {
-	---@param method string
 	---@param params lsp.InitializeParams
 	---@param callback fun(err: nil, result: lsp.InitializeResult)
-	[vim.lsp.protocol.Methods.initialize] = function(method, params, callback)
+	[vim.lsp.protocol.Methods.initialize] = function(params, callback)
 		local opts = params.initializationOptions or {}
-		---@type lsp.ServerCapabilities
-		local server_capabilities = {
-			textDocumentSync = {
-				change = 1,
-				openClose = true,
-				save = false, -- TODO: enable textDocument/didSave
-			},
-			codeActionProvider = opts.codeAction or true,
-			completionProvider = (opts.completion or nil) and {
+		server_capabilities.codeActionProvider = opts.codeAction or true
+		server_capabilities.completionProvider = (opts.completion or nil)
+			and {
 				triggerCharacters = completion.trigger_characters,
-			},
-			hoverProvider = opts.hover or true,
-			diagnosticProvider = {
-				workDoneProgress = true,
-				workspaceDiagnostics = false,
-				interFileDependencies = false,
-			},
-		}
-		if server_capabilities.completionProvider then
-			completion.extend_triggers()
-		end
+			}
+		server_capabilities.hoverProvider = opts.hover or true
 		callback(nil, {
 			capabilities = server_capabilities,
 			serverInfo = {
@@ -41,60 +36,13 @@ local handlers = {
 		})
 	end,
 
-	---@param method string
-	---@param params lsp.CodeActionParams
-	---@param callback fun(err: nil, actions: lsp.CodeAction[]|nil)
-	[vim.lsp.protocol.Methods.textDocument_codeAction] = function(method, params, callback)
-		local result = codeAction.get(params)
-		callback(nil, result)
-	end,
+	-- Request handlers
+	[vim.lsp.protocol.Methods.textDocument_hover] = textDocument.hover,
+	[vim.lsp.protocol.Methods.textDocument_codeAction] = textDocument.codeAction,
+	[vim.lsp.protocol.Methods.textDocument_diagnostic] = textDocument.diagnostic,
+	[vim.lsp.protocol.Methods.textDocument_completion] = textDocument.completion,
 
-	---@param method string
-	---@param params lsp.CompletionParams
-	---@param callback fun(err: nil, result: vim.lsp.CompletionResult|nil)
-	[vim.lsp.protocol.Methods.textDocument_completion] = function(method, params, callback)
-		completion.complete(params, function(result)
-			callback(nil, result)
-		end)
-	end,
-
-	---@param method string
-	---@param params lsp.HoverParams
-	---@param callback fun(err: nil, result: lsp.Hover|nil)
-	[vim.lsp.protocol.Methods.textDocument_hover] = function(method, params, callback)
-		local result = hover.hover(params)
-		callback(nil, result)
-	end,
-
-	---@param method string
-	---@param params lsp.DocumentDiagnosticParams
-	---@param callback fun(err, result: lsp.DocumentDiagnosticReport)
-	[vim.lsp.protocol.Methods.textDocument_diagnostic] = function(method, params, callback)
-		diagnostic.diagnose(params, function(err, result)
-			callback(err, result)
-		end)
-	end,
-
-	------@param method string
-	------@param params lsp.WorkspaceDiagnosticParams
-	------@param callback fun(err: nil, result: lsp.WorkspaceDocumentDiagnosticReport)
-	---[vim.lsp.protocol.Methods.workspace_diagnostic] = function(method, params, callback)
-	---	logger.info(params)
-	---end,
-	---
-	------@param method string
-	------@param params lsp.WorkspaceDiagnosticParams
-	------@param callback fun(err: nil, result: lsp.WorkspaceDocumentDiagnosticReport)
-	---[vim.lsp.protocol.Methods.workspace_diagnostic_refresh] = function(method, params, callback)
-	---	logger.info(params)
-	---end,
-
-	[vim.lsp.protocol.Methods.shutdown] = function(_, _, callback)
-		callback(nil, nil)
-	end,
-}
-
-local notify_handlers = {
+	-- Notification handlers
 	[vim.lsp.protocol.Methods.textDocument_didOpen] = textDocument.didOpen,
 	[vim.lsp.protocol.Methods.textDocument_didChange] = textDocument.didChange,
 	[vim.lsp.protocol.Methods.textDocument_didClose] = textDocument.didClose,
@@ -108,6 +56,22 @@ local function uuid()
 		local v = (c == "x") and random(0, 0xf) or random(8, 0xb)
 		return string.format("%x", v)
 	end)
+end
+
+local request_diagnostics = function(uri, wdt)
+	local client_id = state.session.client_id
+
+	if client_id then
+		local client = vim.lsp.get_client_by_id(client_id)
+		if client then
+			---@type lsp.DocumentDiagnosticParams
+			local diagnostic_params = {
+				textDocument = { uri = uri },
+				workDoneToken = wdt,
+			}
+			client.request(vim.lsp.protocol.Methods.textDocument_diagnostic, diagnostic_params)
+		end
+	end
 end
 
 ---@class ServerOpts
@@ -148,7 +112,7 @@ local function server(opts)
 			logger.debug(params)
 			local handler = handlers[method]
 			if handler then
-				handler(method, params, callback)
+				handler(params, callback)
 			end
 			request_id = request_id + 1
 			return true, request_id
@@ -160,28 +124,22 @@ local function server(opts)
 		---@param params any
 		function srv.notify(method, params)
 			pcall(on_notify, method, params)
-			local handler = notify_handlers[method]
 			logger.debug(method)
 			logger.debug(params)
+			local handler = handlers[method]
 			if handler then
 				handler(params, function(_, _)
-					local doc = params.textDocument
-					local client_id = state.session.client_id
+					if
+						method == vim.lsp.protocol.Methods.textDocument_didOpen
+						or method == vim.lsp.protocol.Methods.textDocument_didChange
+					then
+						local doc = params.textDocument
+						request_diagnostics(doc.uri, uuid())
 
-					if client_id then
-						local client = vim.lsp.get_client_by_id(client_id)
-						if client then
-							---@type lsp.DocumentDiagnosticParams
-							local diagnostic_params = {
-								textDocument = { uri = doc.uri },
-								workDoneToken = uuid(),
-							}
-							client.request(vim.lsp.protocol.Methods.textDocument_diagnostic, diagnostic_params)
-						end
 					end
 				end)
 			end
-			if method == "exit" then
+			if method == vim.lsp.protocol.Methods.exit then
 				dispatchers.on_exit(0, 15)
 			end
 		end
