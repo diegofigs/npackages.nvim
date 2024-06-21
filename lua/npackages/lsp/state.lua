@@ -78,11 +78,10 @@ local State = {
 ---@field vers_col Span
 
 ---@enum ApiDependencyKind
----@diagnostic disable-next-line: unused-local
-local ApiDependencyKind = {
-	NORMAL = 1,
-	DEV = 2,
-	PEER = 3,
-}
+---local ApiDependencyKind = {
+---	NORMAL = 1,
+---	DEV = 2,
+---	PEER = 3,
+---}
 
 return State
