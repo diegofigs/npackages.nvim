@@ -6,7 +6,7 @@ local Logger = {}
 ---@return nil
 local function __print(message, level, highlight_group)
 	vim.notify(
-		"Npackages: " .. vim.inspect(message),
+		type(message) == "string" and message or vim.inspect(message),
 		level or vim.log.levels.TRACE,
 		{ title = "npackages.nvim", highlight_group = highlight_group }
 	)

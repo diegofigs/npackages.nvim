@@ -1,7 +1,8 @@
 .PHONY: test types
 
 test:
-	./scripts/run-tests.sh
+	luarocks install --local nlua
+	luarocks test --local
 
 types:
 	./scripts/gen_types.lua
