@@ -37,4 +37,52 @@ local State = {
 ---@field client_id integer
 ---@field dispatchers vim.lsp.rpc.Dispatchers
 
+---@class ApiPackageSummary
+---@field name string
+---@field description string
+---@field newest_version string
+
+---@class PackageMetadata
+---@field name string
+---@field description string
+---@field created DateTime
+---@field updated DateTime
+-- ---@field downloads integer
+---@field homepage string|nil
+---@field repository string|nil
+-- ---@field documentation string|nil
+-- ---@field categories string[]
+---@field keywords string[]
+---@field versions ApiVersion[]
+
+---@class ApiVersion
+---@field num string
+---@field parsed SemVer
+---@field created DateTime
+---@field deps ApiDependency[]|nil
+
+---@class ApiDependency
+---@field name string
+---@field opt boolean
+---@field kind ApiDependencyKind
+---@field vers ApiDependencyVers
+
+---@class ApiDependencyVers
+---@field reqs Requirement[]
+---@field text string
+
+---@class Requirement
+---@field cond Cond
+---@field cond_col Span
+---@field vers SemVer
+---@field vers_col Span
+
+---@enum ApiDependencyKind
+---@diagnostic disable-next-line: unused-local
+local ApiDependencyKind = {
+	NORMAL = 1,
+	DEV = 2,
+	PEER = 3,
+}
+
 return State

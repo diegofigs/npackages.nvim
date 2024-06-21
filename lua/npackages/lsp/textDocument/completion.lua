@@ -84,7 +84,7 @@ local FIELD_KIND = 5
 local VALUE_KIND = 12
 
 ---@param params lsp.CompletionParams
----@param callback fun(err, res)
+---@param callback fun(err, res: vim.lsp.CompletionResult)
 function M.complete(params, callback)
 	local doc = state.documents[params.textDocument.uri]
 	-- figure out if we are completing the package name or version

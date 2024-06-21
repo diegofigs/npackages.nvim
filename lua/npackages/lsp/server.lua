@@ -1,6 +1,10 @@
+local nio = require("nio")
 local state = require("npackages.lsp.state")
 local textDocument = require("npackages.lsp.textDocument")
 local completion = require("npackages.lsp.textDocument.completion")
+local workspace = require("npackages.lsp.workspace")
+local uuid = require("npackages.lib.uuid")
+local extmark = require("npackages.ui.extmark")
 local logger = require("npackages.logger")
 
 ---@type lsp.ServerCapabilities
@@ -48,15 +52,6 @@ local handlers = {
 	[vim.lsp.protocol.Methods.textDocument_didClose] = textDocument.didClose,
 	[vim.lsp.protocol.Methods.textDocument_didSave] = textDocument.didSave,
 }
-
-local random = math.random
-local function uuid()
-	local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
-	return string.gsub(template, "[xy]", function(c)
-		local v = (c == "x") and random(0, 0xf) or random(8, 0xb)
-		return string.format("%x", v)
-	end)
-end
 
 local request_diagnostics = function(uri, wdt)
 	local client_id = state.session.client_id
@@ -112,7 +107,10 @@ local function server(opts)
 			logger.debug(params)
 			local handler = handlers[method]
 			if handler then
-				handler(params, callback)
+				handler(params, function(err, res)
+					logger.debug(res)
+					callback(err, res)
+				end)
 			end
 			request_id = request_id + 1
 			return true, request_id
@@ -132,10 +130,17 @@ local function server(opts)
 					if
 						method == vim.lsp.protocol.Methods.textDocument_didOpen
 						or method == vim.lsp.protocol.Methods.textDocument_didChange
+						or method == vim.lsp.protocol.Methods.textDocument_didSave
 					then
 						local doc = params.textDocument
-						request_diagnostics(doc.uri, uuid())
-
+						nio.run(function()
+							workspace.refresh(doc.uri, uuid())
+						end, function()
+							local buf = vim.uri_to_bufnr(doc.uri)
+							extmark.clear(buf)
+							request_diagnostics(doc.uri, uuid())
+							extmark.display(buf, state.doc_cache[doc.uri].info)
+						end)
 					end
 				end)
 			end

@@ -1,5 +1,4 @@
 local state = require("npackages.lsp.state")
-local core = require("npackages.lsp.core")
 local hover = require("npackages.lsp.textDocument.hover")
 local codeAction = require("npackages.lsp.textDocument.codeAction")
 local diagnostic = require("npackages.lsp.textDocument.diagnostic")
@@ -13,13 +12,6 @@ function textDocument.didOpen(params, callback)
 	local doc = params.textDocument
 	state.documents[doc.uri] = doc
 
-	-- if plugin.cfg.autoupdate then
-	-- 	core.inner_throttled_update = async.throttle(function()
-	-- 		core.update(doc.uri)
-	-- 	end, plugin.cfg.autoupdate_throttle)
-	-- end
-
-	core.update(doc.uri)
 	callback(nil, nil)
 end
 
@@ -31,18 +23,12 @@ function textDocument.didChange(params, callback)
 		state.documents[doc.uri].text = change.text
 	end
 
-	-- core.throttled_update(vim.uri_to_bufnr(doc.uri), false)
-
-	core.update(doc.uri)
 	callback(nil, nil)
 end
 
 ---@param params lsp.DidSaveTextDocumentParams
 ---@param callback fun(err, res)
 function textDocument.didSave(params, callback)
-	local doc = params.textDocument
-
-	core.update(doc.uri)
 	callback(nil, nil)
 end
 
@@ -63,7 +49,7 @@ textDocument.hover = function(params, callback)
 end
 
 ---@param params lsp.CodeActionParams
----@param callback fun(err: nil, res: lsp.CodeAction[]|nil)
+---@param callback fun(err: nil, res: lsp.CodeAction[])
 textDocument.codeAction = function(params, callback)
 	local result = codeAction.get(params)
 	callback(nil, result)
@@ -76,7 +62,7 @@ textDocument.diagnostic = function(params, callback)
 end
 
 ---@param params lsp.CompletionParams
----@param callback fun(err, result: vim.lsp.CompletionResult|nil)
+---@param callback fun(err, result: vim.lsp.CompletionResult)
 textDocument.completion = function(params, callback)
 	completion.complete(params, callback)
 end
