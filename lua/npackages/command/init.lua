@@ -1,12 +1,14 @@
+local nio = require("nio")
 local add = require("npackages.command.add")
 local update = require("npackages.command.update")
 local delete = require("npackages.command.delete")
 local install = require("npackages.command.install")
 local change_version = require("npackages.command.change_version")
-local core = require("npackages.lsp.core")
-local lsp_state = require("npackages.lsp.state")
+local workspace = require("npackages.lsp.workspace")
+local lsp = require("npackages.lsp.state")
+local uuid = require("npackages.lib.uuid")
 local state = require("npackages.state")
-local ui = require("npackages.ui")
+local extmark = require("npackages.ui.extmark")
 local hover = require("npackages.hover")
 local util = require("npackages.util")
 
@@ -14,10 +16,10 @@ local M = {}
 
 function M.hide()
 	state.visible = false
-	for uri, _ in pairs(lsp_state.doc_cache) do
+	for uri, _ in pairs(lsp.doc_cache) do
 		local b = vim.uri_to_bufnr(uri)
 		if b then
-			ui.clear(b)
+			extmark.clear(b)
 		end
 	end
 end
@@ -25,11 +27,10 @@ end
 function M.show()
 	state.visible = true
 
-	for uri, _ in pairs(lsp_state.doc_cache) do
+	for uri, doc_cache in pairs(lsp.doc_cache) do
 		local b = vim.uri_to_bufnr(uri)
 		if b then
-			-- TODO: do not trigger update when showing
-			M.update()
+			extmark.display(b, doc_cache.info)
 		end
 	end
 end
@@ -44,12 +45,16 @@ end
 
 function M.update()
 	local buf = util.current_buf()
-	core.update(vim.uri_from_bufnr(buf))
+	nio.run(function()
+		workspace.refresh(vim.uri_from_bufnr(buf), uuid())
+	end, nil)
 end
 
 function M.reload()
 	local buf = util.current_buf()
-	core.reload(vim.uri_from_bufnr(buf))
+	nio.run(function()
+		workspace.reload(vim.uri_from_bufnr(buf), uuid())
+	end, nil)
 end
 
 local sub_commands = {

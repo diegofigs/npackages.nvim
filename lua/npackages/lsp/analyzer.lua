@@ -7,7 +7,7 @@ local SemVer = semver.SemVer
 
 local M = {}
 
----NOTE: Used to index the user configuration, so keys have to be in sync
+-- NOTE: Used to index the user configuration, so keys have to be in sync
 ---@enum DiagnosticCodes
 M.DiagnosticCodes = {
 	-- error
@@ -72,7 +72,7 @@ end
 
 ---@param pkg JsonPackage
 ---@param code DiagnosticCodes
----@param severity integer
+---@param severity lsp.DiagnosticSeverity
 ---@param scope PackageScope|nil
 ---@param data table<string,any>|nil
 ---@return lsp.Diagnostic[]

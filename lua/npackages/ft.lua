@@ -5,7 +5,6 @@ local highlight = require("npackages.highlight")
 local npm = require("npackages.lib.npm")
 local state = require("npackages.state")
 local util = require("npackages.util")
-local hover = require("npackages.hover")
 
 local M = {}
 
@@ -26,7 +25,7 @@ M.setup = function(user_options)
 	command.create_commands()
 	highlight.create_highlights()
 
-	local group = vim.api.nvim_create_augroup("NpackagesAutogroup", {})
+	local group = vim.api.nvim_create_augroup("Npackages", {})
 
 	if state.cfg.autoload then
 		attach()
@@ -41,7 +40,9 @@ M.setup = function(user_options)
 	vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
 		group = group,
 		pattern = "package.json",
-		callback = hover.hide,
+		callback = function()
+			require("npackages.hover").hide()
+		end,
 	})
 end
 
