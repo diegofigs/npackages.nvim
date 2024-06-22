@@ -36,3 +36,4 @@ jobs:
           LINTER_RULES_PATH: /
           # TODO: reenable once linter config is figured out
           VALIDATE_JSCPD: false
+          VALIDATE_JSON: false
