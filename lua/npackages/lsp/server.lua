@@ -6,6 +6,7 @@ local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local workspace = require("npackages.lsp.workspace")
 local uuid = require("npackages.lib.uuid")
 local extmark = require("npackages.ui.extmark")
+local logger = require("npackages.logger")
 
 ---@type lsp.ServerCapabilities
 local server_capabilities = {
