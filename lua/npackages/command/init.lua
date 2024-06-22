@@ -5,6 +5,7 @@ local delete = require("npackages.command.delete")
 local install = require("npackages.command.install")
 local change_version = require("npackages.command.change_version")
 local workspace = require("npackages.lsp.workspace")
+local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local lsp = require("npackages.lsp.state")
 local uuid = require("npackages.lib.uuid")
 local state = require("npackages.state")
@@ -26,7 +27,6 @@ end
 
 function M.show()
 	state.visible = true
-
 	for uri, doc_cache in pairs(lsp.doc_cache) do
 		local b = vim.uri_to_bufnr(uri)
 		if b then
@@ -45,16 +45,26 @@ end
 
 function M.update()
 	local buf = util.current_buf()
+	local uri = vim.uri_from_bufnr(buf)
 	nio.run(function()
-		workspace.refresh(vim.uri_from_bufnr(buf), uuid())
-	end, nil)
+		workspace.refresh(uri, uuid())
+	end, function(success, ...)
+		diagnostic.request_diagnostics(uri, uuid())
+		extmark.clear(buf)
+		extmark.display(buf, lsp.doc_cache[uri].info)
+	end)
 end
 
 function M.reload()
 	local buf = util.current_buf()
+	local uri = vim.uri_from_bufnr(buf)
+	extmark.clear(buf)
 	nio.run(function()
-		workspace.reload(vim.uri_from_bufnr(buf), uuid())
-	end, nil)
+		workspace.reload(uri, uuid())
+	end, function(success, ...)
+		diagnostic.request_diagnostics(uri, uuid())
+		extmark.display(buf, lsp.doc_cache[uri].info)
+	end)
 end
 
 local sub_commands = {
