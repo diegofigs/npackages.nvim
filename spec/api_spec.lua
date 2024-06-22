@@ -1,4 +1,4 @@
-local nio = require("nio")
+-- local nio = require("nio")
 local api = require("npackages.lib.api")
 local time = require("npackages.lib.time")
 local semver = require("npackages.lib.semver")
