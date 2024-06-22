@@ -1,14 +1,14 @@
-local api = require("npackages.lsp.system")
+-- local nio = require("nio")
+local api = require("npackages.lib.api")
 local time = require("npackages.lib.time")
-local json = require("npackages.lib.json")
-local DateTime = time.DateTime
 local semver = require("npackages.lib.semver")
+local DateTime = time.DateTime
 local SemVer = semver.SemVer
 
-describe("npackages.lsp.system", function()
+describe("npackages.lib.api", function()
 	it("can parse json", function()
-		local json_str = io.open("spec/mocks/pure-rand.json"):read("a")
-		local decoded = json.decode(json_str)
+		local json_str = io.open("spec/mocks/api/pure-rand.json"):read("a")
+		local decoded = vim.json.decode(json_str)
 		local metadata = api.parse_metadata(decoded)
 		assert.has_same({
 			name = "pure-rand",
@@ -62,4 +62,16 @@ describe("npackages.lsp.system", function()
 			},
 		}, metadata)
 	end)
+
+	-- nio.tests.it("can fetch package metadata", function()
+	-- 	local metadata = api.curl_package("pure-rand")
+	-- 	assert.not_nil(metadata)
+	-- end)
+	--
+	-- nio.tests.it("can fetch package metadata in bulk", function()
+	-- 	local metadatas = api.fetch_packages({ "pure-rand", "uuid" })
+	-- 	for _, meta in pairs(metadatas) do
+	-- 		assert.not_nil(meta)
+	-- 	end
+	-- end)
 end)

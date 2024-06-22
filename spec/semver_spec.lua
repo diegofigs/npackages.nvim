@@ -18,7 +18,7 @@ local function assert_error(version, requirement)
 	end
 end
 
-describe("npackages.semver", function()
+describe("npackages.lib.semver", function()
 	it("can match caret", function()
 		assert_match("2.0.3", "^2.0.3")
 		assert_match("2.0.5", "^2.0.3")

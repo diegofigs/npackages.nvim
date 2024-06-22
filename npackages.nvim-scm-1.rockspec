@@ -9,6 +9,7 @@ dependencies = {
 
 test_dependencies = {
 	"nlua",
+	"nvim-nio",
 }
 
 source = {
@@ -17,4 +18,7 @@ source = {
 
 build = {
 	type = "builtin",
+	copy_directories = {
+		"ftplugin",
+	},
 }
