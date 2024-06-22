@@ -2,6 +2,7 @@ local nio = require("nio")
 local state = require("npackages.lsp.state")
 local textDocument = require("npackages.lsp.textDocument")
 local completion = require("npackages.lsp.textDocument.completion")
+local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local workspace = require("npackages.lsp.workspace")
 local uuid = require("npackages.lib.uuid")
 local extmark = require("npackages.ui.extmark")
@@ -53,21 +54,6 @@ local handlers = {
 	[vim.lsp.protocol.Methods.textDocument_didSave] = textDocument.didSave,
 }
 
-local request_diagnostics = function(uri, wdt)
-	local client_id = state.session.client_id
-
-	if client_id then
-		local client = vim.lsp.get_client_by_id(client_id)
-		if client then
-			---@type lsp.DocumentDiagnosticParams
-			local diagnostic_params = {
-				textDocument = { uri = uri },
-				workDoneToken = wdt,
-			}
-			client.request(vim.lsp.protocol.Methods.textDocument_diagnostic, diagnostic_params)
-		end
-	end
-end
 
 ---@class ServerOpts
 ---@field on_request fun(method: string, params: any)?
@@ -103,8 +89,6 @@ local function server(opts)
 		---@return integer
 		function srv.request(method, params, callback)
 			pcall(on_request, method, params)
-			logger.debug(method)
-			logger.debug(params)
 			local handler = handlers[method]
 			if handler then
 				handler(params, function(err, res)
@@ -122,8 +106,6 @@ local function server(opts)
 		---@param params any
 		function srv.notify(method, params)
 			pcall(on_notify, method, params)
-			logger.debug(method)
-			logger.debug(params)
 			local handler = handlers[method]
 			if handler then
 				handler(params, function(_, _)
@@ -136,9 +118,9 @@ local function server(opts)
 						nio.run(function()
 							workspace.refresh(doc.uri, uuid())
 						end, function()
+							diagnostic.request_diagnostics(doc.uri, uuid())
 							local buf = vim.uri_to_bufnr(doc.uri)
 							extmark.clear(buf)
-							request_diagnostics(doc.uri, uuid())
 							extmark.display(buf, state.doc_cache[doc.uri].info)
 						end)
 					end

@@ -4,6 +4,24 @@ local progress = require("npackages.lsp.progress")
 
 local M = {}
 
+---@param uri lsp.DocumentUri
+---@param workDoneToken lsp.ProgressToken
+M.request_diagnostics = function(uri, workDoneToken)
+	local client_id = state.session.client_id
+
+	if client_id then
+		local client = vim.lsp.get_client_by_id(client_id)
+		if client then
+			---@type lsp.DocumentDiagnosticParams
+			local diagnostic_params = {
+				textDocument = { uri = uri },
+				workDoneToken = workDoneToken,
+			}
+			client.request(vim.lsp.protocol.Methods.textDocument_diagnostic, diagnostic_params)
+		end
+	end
+end
+
 ---@param params lsp.DocumentDiagnosticParams
 ---@param callback fun(err, res: lsp.DocumentDiagnosticReport)
 function M.diagnose(params, callback)
