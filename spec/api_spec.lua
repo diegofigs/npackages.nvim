@@ -64,12 +64,27 @@ describe("npackages.lib.api", function()
 	end)
 
 	nio.tests.it("can fetch package metadata", function()
-		local metadata = api.curl_package("pure-rand")
+		local event = nio.control.event()
+		local metadata = nil
+		nio.run(function()
+			metadata = api.curl_package("pure-rand")
+			event.set()
+		end)
+		event.wait()
 		assert.not_nil(metadata)
 	end)
 
 	nio.tests.it("can fetch package metadata in bulk", function()
-		local metadatas = api.fetch_packages({ "pure-rand", "uuid" })
+		local event = nio.control.event()
+		local metadatas = nil
+
+		nio.run(function()
+			metadatas = api.fetch_packages({ "pure-rand", "uuid" })
+			event.set()
+		end)
+		event.wait()
+
+		assert.not_nil(metadatas)
 		for _, meta in pairs(metadatas) do
 			assert.not_nil(meta)
 		end
