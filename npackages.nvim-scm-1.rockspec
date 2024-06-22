@@ -9,6 +9,7 @@ dependencies = {
 
 test_dependencies = {
 	"nlua",
+	"nvim-nio",
 }
 
 source = {
