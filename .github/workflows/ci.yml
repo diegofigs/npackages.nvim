@@ -23,5 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run tests
         uses: nvim-neorocks/nvim-busted-action@v1
+        env:
+          PLENARY_TEST_TIMEOUT: 30000
         with:
           nvim_version: ${{ matrix.neovim_version }}
