@@ -1,5 +1,5 @@
 {
-  "name": "pnpm",
+  "name": "pnpm-package-mock",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
