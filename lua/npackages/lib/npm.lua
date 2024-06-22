@@ -2,7 +2,6 @@ local job = require("npackages.lib.job")
 local logger = require("npackages.logger")
 local state = require("npackages.state")
 local util = require("npackages.util")
-local json = require("npackages.lib.json")
 
 local M = {}
 
@@ -35,18 +34,29 @@ M.is_valid_package_json = function()
 
 	local buffer_content = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 
-	if pcall(function()
-		json.decode(table.concat(buffer_content))
-	end) then
-		return true
-	end
+	local valid = pcall(function()
+		vim.json.decode(table.concat(buffer_content))
+	end)
 
-	return false
+	return valid
 end
 
 -- Check which lock file exists and set package manager accordingly
 M.detect_package_manager = function()
-	local yarn_lock = io.open("yarn.lock", "r")
+	-- Get the current cwd and use it as the value for
+	-- cwd in case no package.json is open right now
+	local cwd = vim.fn.getcwd()
+
+	-- Get the path of the opened file if there is one
+	local file_path = vim.fn.expand("%:p")
+
+	-- If the file is a package.json then use the directory
+	-- of the file as value for cwd
+	if string.sub(file_path, -12) == "package.json" then
+		cwd = string.sub(file_path, 1, -13)
+	end
+
+	local yarn_lock = io.open(cwd .. "/yarn.lock", "r")
 
 	if yarn_lock ~= nil then
 		job({
@@ -69,7 +79,7 @@ M.detect_package_manager = function()
 		return M.PACKAGE_MANAGERS.yarn
 	end
 
-	local package_lock = io.open("package-lock.json", "r")
+	local package_lock = io.open(cwd .. "package-lock.json", "r")
 
 	if package_lock ~= nil then
 		io.close(package_lock)
@@ -77,7 +87,7 @@ M.detect_package_manager = function()
 		return M.PACKAGE_MANAGERS.npm
 	end
 
-	local pnpm_lock = io.open("pnpm-lock.yaml", "r")
+	local pnpm_lock = io.open(cwd .. "/pnpm-lock.yaml", "r")
 
 	if pnpm_lock ~= nil then
 		io.close(pnpm_lock)

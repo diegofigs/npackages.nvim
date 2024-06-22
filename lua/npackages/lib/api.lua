@@ -2,15 +2,17 @@ local nio = require("nio")
 local progress = require("npackages.lsp.progress")
 local time = require("npackages.lib.time")
 local semver = require("npackages.lib.semver")
-local logger = require("npackages.logger")
 local DateTime = time.DateTime
 
-local system = {}
+local api = {}
 
 local REGISTRY = "https://registry.npmjs.org"
 local USERAGENT = vim.fn.shellescape("npackages.nvim (https://github.com/diegofigs/npackages.nvim)")
 
-system.parse_metadata = function(decoded)
+---Maps a metadata table to PackageMetadata
+---@param decoded table
+---@return PackageMetadata
+api.parse_metadata = function(decoded)
 	---@type table<string,any>
 	local metadata = decoded
 
@@ -53,9 +55,8 @@ end
 ---@async
 ---@param package_name string
 ---@return string?
-system.curl_package = function(package_name)
+api.curl_package = function(package_name)
 	local url = REGISTRY .. "/" .. package_name
-	logger.trace(string.format("[START] curl %s", url))
 	local process = nio.process.run({
 		cmd = "curl",
 		args = { "sL", "--retry", "1", "-A", USERAGENT, url },
@@ -63,7 +64,6 @@ system.curl_package = function(package_name)
 	if process then
 		local metadata = process.stdout.read()
 		process.close()
-		logger.trace(string.format("[END] curl %s", url))
 
 		if not metadata then
 			return
@@ -71,35 +71,34 @@ system.curl_package = function(package_name)
 
 		return metadata
 	end
-	logger.error(string.format("curl %s", url))
 end
 
 ---@async
 ---@param package_names string[]
----@param workDoneToken lsp.ProgressToken
+---@param workDoneToken? lsp.ProgressToken
 ---@return table<string, PackageMetadata>
-system.fetch_packages = function(package_names, workDoneToken)
+api.fetch_packages = function(package_names, workDoneToken)
 	local functions = {}
 	local pkg_total = #package_names
 	local pkg_count = 0
 	for _, package_name in ipairs(package_names) do
 		table.insert(functions, function()
-			local res = system.curl_package(package_name)
+			local res = api.curl_package(package_name)
 			pkg_count = pkg_count + 1
 			nio.scheduler()
-			progress.report(workDoneToken, string.format("%s/%s packages", pkg_count, pkg_total))
+			if workDoneToken then
+				progress.report(workDoneToken, string.format("%s/%s packages", pkg_count, pkg_total))
+			end
 			return res
 		end)
 	end
-	logger.trace("[START] gather")
 	local outputs = nio.gather(functions)
-	logger.trace("[END] gather")
 
 	local results = {}
 	for _, out in ipairs(outputs) do
 		local metadata = nio.fn.json_decode(out)
 
-		local pkg = system.parse_metadata(metadata)
+		local pkg = api.parse_metadata(metadata)
 
 		results[pkg.name] = pkg
 	end
@@ -107,4 +106,4 @@ system.fetch_packages = function(package_names, workDoneToken)
 	return results
 end
 
-return system
+return api

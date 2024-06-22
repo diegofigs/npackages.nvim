@@ -14,7 +14,7 @@ local function attach()
 end
 
 --- Take all user options and setup the config, source of options is purposefully abstracted
----@param user_options table|nil all options user can provide in the plugin config
+---@param user_options npackages.UserConfig|nil all options user can provide in the plugin config
 ---@return nil
 M.setup = function(user_options)
 	-- Configuration

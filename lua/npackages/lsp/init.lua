@@ -1,4 +1,4 @@
-local server = require("npackages.lsp.server")
+local server = require("npackages.lsp.server").server
 local lsp_state = require("npackages.lsp.state")
 local plugin = require("npackages.state")
 local util = require("npackages.util")

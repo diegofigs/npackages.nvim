@@ -1,8 +1,8 @@
 local state = require("npackages.lsp.state")
-local system = require("npackages.lsp.system")
 local scanner = require("npackages.lsp.scanner")
 local analyzer = require("npackages.lsp.analyzer")
 local progress = require("npackages.lsp.progress")
+local api = require("npackages.lib.api")
 
 local workspace = {}
 
@@ -38,7 +38,7 @@ workspace.refresh = function(uri, workDoneToken)
 			progress.begin(workDoneToken, "Indexing")
 		end
 
-		local res = system.fetch_packages(packages_to_fetch, workDoneToken)
+		local res = api.fetch_packages(packages_to_fetch, workDoneToken)
 		if res then
 			for k, meta in pairs(res) do
 				state.api_cache[k] = meta

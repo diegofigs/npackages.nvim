@@ -6,14 +6,14 @@ local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local workspace = require("npackages.lsp.workspace")
 local uuid = require("npackages.lib.uuid")
 local extmark = require("npackages.ui.extmark")
-local logger = require("npackages.logger")
+
+local M = {}
 
 ---@type lsp.ServerCapabilities
 local server_capabilities = {
 	textDocumentSync = {
 		change = 1,
 		openClose = true,
-		save = true,
 	},
 	diagnosticProvider = {
 		workDoneProgress = true,
@@ -54,6 +54,7 @@ local handlers = {
 	[vim.lsp.protocol.Methods.textDocument_didSave] = textDocument.didSave,
 }
 
+M.messages = {}
 
 ---@class ServerOpts
 ---@field on_request fun(method: string, params: any)?
@@ -63,7 +64,7 @@ local handlers = {
 -- `dispatchers` is a table with a couple methods that allow the server to interact with the client
 ---@param opts ServerOpts|nil
 ---@return fun(_: vim.lsp.rpc.Dispatchers): vim.lsp.rpc.PublicClient
-local function server(opts)
+function M.server(opts)
 	opts = opts or {}
 	local on_request = opts.on_request or function(_, _) end
 	local on_notify = opts.on_notify or function(_, _) end
@@ -89,12 +90,13 @@ local function server(opts)
 		---@return integer
 		function srv.request(method, params, callback)
 			pcall(on_request, method, params)
+			table.insert(M.messages, {
+				method = method,
+				params = params,
+			})
 			local handler = handlers[method]
 			if handler then
-				handler(params, function(err, res)
-					logger.debug(res)
-					callback(err, res)
-				end)
+				handler(params, callback)
 			end
 			request_id = request_id + 1
 			return true, request_id
@@ -106,6 +108,10 @@ local function server(opts)
 		---@param params any
 		function srv.notify(method, params)
 			pcall(on_notify, method, params)
+			table.insert(M.messages, {
+				method = method,
+				params = params,
+			})
 			local handler = handlers[method]
 			if handler then
 				handler(params, function(_, _)
@@ -145,4 +151,4 @@ local function server(opts)
 	end
 end
 
-return server
+return M
