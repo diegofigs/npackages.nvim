@@ -1,9 +1,11 @@
--- local nio = require("nio")
+local nio = require("nio")
 local api = require("npackages.lib.api")
 local time = require("npackages.lib.time")
 local semver = require("npackages.lib.semver")
 local DateTime = time.DateTime
 local SemVer = semver.SemVer
+
+vim.env.PLENARY_TEST_TIMEOUT = 30000
 
 describe("npackages.lib.api", function()
 	it("can parse json", function()
@@ -63,15 +65,15 @@ describe("npackages.lib.api", function()
 		}, metadata)
 	end)
 
-	-- nio.tests.it("can fetch package metadata", function()
-	-- 	local metadata = api.curl_package("pure-rand")
-	-- 	assert.not_nil(metadata)
-	-- end)
-	--
-	-- nio.tests.it("can fetch package metadata in bulk", function()
-	-- 	local metadatas = api.fetch_packages({ "pure-rand", "uuid" })
-	-- 	for _, meta in pairs(metadatas) do
-	-- 		assert.not_nil(meta)
-	-- 	end
-	-- end)
+	it("can fetch package metadata", function()
+		local metadata = nio.tests.with_async_context(api.curl_package, "pure-rand")
+		assert.not_nil(metadata)
+	end)
+
+	it("can fetch package metadata in bulk", function()
+		local metadatas = nio.tests.with_async_context(api.fetch_packages, { "pure-rand", "uuid" })
+		for _, meta in pairs(metadatas) do
+			assert.not_nil(meta)
+		end
+	end)
 end)
