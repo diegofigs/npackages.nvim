@@ -1,8 +1,6 @@
 local state = require("npackages.lsp.state")
-local types = require("npackages.types")
 local util = require("npackages.util")
 local analyzer = require("npackages.lsp.analyzer")
-local Span = types.Span
 local DiagnosticCodes = analyzer.DiagnosticCodes
 
 local M = {}
@@ -59,29 +57,67 @@ function M.get(params)
 	end
 
 	local range = params.range
-	local line = range.start.line
-	local current_line_pkgs = util.get_lsp_packages(doc.uri, Span.pos(line))
-	local line_key, line_pkg = next(current_line_pkgs)
+	local packages_in_range = util.get_packages_in_range(doc.uri, range)
+	local line_key, line_pkg = next(packages_in_range)
 	local diagnostics = state.diagnostics[doc.uri]
 
-	if line_pkg then
-		local cache = state.doc_cache[doc.uri]
-		local info = cache.info[line_key]
-		if info then
-			for _, d in ipairs(diagnostics) do
-				if d.range.start.line == line and d.range.start.character == range.start.character then
-					if info.vers_update then
-						local version = info.vers_update.parsed:display()
-						local text_edit = { range = d.range, newText = version }
-						table.insert(actions, to_code_action(doc.uri, "source", "Update package", { text_edit }))
-					end
-					if info.vers_upgrade then
-						local version = info.vers_upgrade.parsed:display()
-						local text_edit = { range = d.range, newText = version }
-						table.insert(actions, to_code_action(doc.uri, "source", "Upgrade package", { text_edit }))
+	if range.start.line == range["end"].line then
+		if line_pkg then
+			local cache = state.doc_cache[doc.uri]
+			local info = cache.info[line_key]
+			if info then
+				for _, d in ipairs(diagnostics) do
+					if d.range.start.line == range.start.line then
+						if info.vers_update then
+							local version = info.vers_update.parsed:display()
+							local text_edit = { range = d.range, newText = version }
+							table.insert(actions, to_code_action(doc.uri, "source", "Update package", { text_edit }))
+						end
+						if info.vers_upgrade then
+							local version = info.vers_upgrade.parsed:display()
+							local text_edit = { range = d.range, newText = version }
+							table.insert(actions, to_code_action(doc.uri, "source", "Upgrade package", { text_edit }))
+						end
 					end
 				end
 			end
+		end
+	else
+		---@type lsp.TextEdit[]
+		local update_selected_edits = {}
+		---@type lsp.TextEdit[]
+		local upgrade_selected_edits = {}
+		for k, p in pairs(packages_in_range) do
+			local cache = state.doc_cache[doc.uri]
+			local info = cache.info[k]
+			local pkg_line = p.lines.s
+			if info then
+				for _, d in ipairs(diagnostics) do
+					if d.range.start.line == pkg_line then
+						if info.vers_update then
+							local version = info.vers_update.parsed:display()
+							local text_edit = { range = d.range, newText = version }
+							table.insert(update_selected_edits, text_edit)
+						end
+						if info.vers_upgrade then
+							local version = info.vers_upgrade.parsed:display()
+							local text_edit = { range = d.range, newText = version }
+							table.insert(upgrade_selected_edits, text_edit)
+						end
+					end
+				end
+			end
+		end
+
+		if #update_selected_edits > 0 then
+			table.insert(actions, to_code_action(doc.uri, "source", "Update selected packages", update_selected_edits))
+		end
+
+		if #upgrade_selected_edits > 0 then
+			table.insert(
+				actions,
+				to_code_action(doc.uri, "source", "Upgrade selected packages", upgrade_selected_edits)
+			)
 		end
 	end
 
@@ -91,7 +127,7 @@ function M.get(params)
 	local upgrade_all_edits = {}
 	for _, d in pairs(diagnostics) do
 		if d.code == DiagnosticCodes.VERS_UPGRADE then
-			local d_packages = util.get_lsp_packages(doc.uri, Span.pos(d.range.start.line))
+			local d_packages = util.get_packages_in_range(doc.uri, d.range)
 			local d_line, d_pkg = next(d_packages)
 			if d_pkg then
 				local cache = state.doc_cache[doc.uri]

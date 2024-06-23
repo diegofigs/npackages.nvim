@@ -3,15 +3,11 @@ local hover = require("npackages.hover.common")
 local state = require("npackages.state")
 local util = require("npackages.util")
 
-local types = require("npackages.types")
-local Span = types.Span
-
 local M = {}
 
 ---@param buf integer
 ---@param package JsonPackage
 ---@param text string
----@return Span
 local function insert_version(buf, package, text)
 	local t = text
 	if state.cfg.insert_closing_quote and not package.vers.quote.e then
@@ -20,17 +16,15 @@ local function insert_version(buf, package, text)
 	local line = package.vers.line
 
 	vim.api.nvim_buf_set_text(buf, line, package.vers.col.s, line, package.vers.col.e, { t })
-	return Span.pos(line)
 end
 
 ---@param buf integer
 ---@param package JsonPackage
 ---@param version SemVer
 ---@param alt boolean|nil
----@return Span
 local function set_version(buf, package, version, alt)
 	local text = analyzer.version_text(package, version, alt)
-	return insert_version(buf, package, text)
+	insert_version(buf, package, text)
 end
 
 ---@class VersContext

@@ -2,9 +2,7 @@ local hover = require("npackages.hover.common")
 local hover_package = require("npackages.hover.package")
 local hover_versions = require("npackages.hover.versions")
 local lsp_state = require("npackages.lsp.state")
-local types = require("npackages.types")
 local analyzer = require("npackages.lsp.analyzer")
-local Span = types.Span
 local util = require("npackages.util")
 
 local Hover = {}
@@ -20,23 +18,26 @@ local function line_crate_info()
 	local buf = util.current_buf()
 	local line, col = util.cursor_pos()
 
-	local packages = util.get_lsp_packages(vim.uri_from_bufnr(buf), Span.new(line, line + 1))
-	local _, crate = next(packages)
-	if not crate then
+	local pkg = util.get_package_in_position(vim.uri_from_bufnr(buf), {
+		line = line,
+		character = 0,
+	})
+
+	if not pkg then
 		return
 	end
 
-	local api_package = lsp_state.api_cache[crate:package()]
+	local api_package = lsp_state.api_cache[pkg:package()]
 	if not api_package then
 		return
 	end
 
-	local m, p, y = analyzer.get_newest(api_package.versions, crate:vers_reqs())
+	local m, p, y = analyzer.get_newest(api_package.versions, pkg:vers_reqs())
 	local newest = m or p or y or api_package.versions[1]
 
 	---@type LinePackageInfo
 	local info = {
-		crate = crate,
+		crate = pkg,
 		versions = api_package.versions,
 		newest = newest,
 		pref = hover.Type.JSON,
@@ -46,7 +47,7 @@ local function line_crate_info()
 		info.pref = hover.Type.VERSIONS
 	end
 
-	if crate.vers.col:moved(-1, 1):contains(col) then
+	if pkg.vers.col:moved(-1, 1):contains(col) then
 		versions_info()
 	end
 

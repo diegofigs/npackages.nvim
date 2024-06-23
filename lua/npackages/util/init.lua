@@ -1,7 +1,5 @@
 local state = require("npackages.state")
 local lsp_state = require("npackages.lsp.state")
-local types = require("npackages.types")
-local Span = types.Span
 local logger = require("npackages.logger")
 
 local M = {}
@@ -19,39 +17,51 @@ function M.cursor_pos()
 	return cursor[1] - 1, cursor[2]
 end
 
----@return Span
-function M.selected_lines()
-	local info = vim.api.nvim_get_mode()
-	if info.mode:match("[vV]") then
-		local s = vim.fn.getpos("v")[2]
-		local e = vim.fn.getcurpos()[2]
-		return Span.new(s, e)
-	else
-		local s = vim.api.nvim_buf_get_mark(0, "<")[1]
-		local e = vim.api.nvim_buf_get_mark(0, ">")[1]
-		return Span.new(s, e)
-	end
-end
-
 ---@param uri lsp.DocumentUri
----@param lines Span
----@return table<string,JsonPackage>
-function M.get_lsp_packages(uri, lines)
+---@param pos lsp.Position
+---@return JsonPackage|nil
+function M.get_package_in_position(uri, pos)
 	local cache = lsp_state.doc_cache[uri]
 	local packages = cache and cache.packages
 	if not packages then
 		return {}
 	end
 
-	---@type table<string,JsonPackage>
-	local line_packages = {}
-	for k, c in pairs(packages) do
-		if lines:contains(c.lines.s) or c.lines:contains(lines.s) then
-			line_packages[k] = c
+	local pkg = nil
+	for _, p in pairs(packages) do
+		if pos.line == p.lines.s then
+			pkg = p
 		end
 	end
 
-	return line_packages
+	return pkg
+end
+
+---@param uri lsp.DocumentUri
+---@param range lsp.Range
+---@return table<string,JsonPackage>
+function M.get_packages_in_range(uri, range)
+	local cache = lsp_state.doc_cache[uri]
+	local packages = cache and cache.packages
+	if not packages then
+		return {}
+	end
+
+	local range_s = range.start.line
+	local range_e = range["end"].line
+
+	---@type table<string,JsonPackage>
+	local packages_in_range = {}
+	for k, p in pairs(packages) do
+		local pkg_start = p.lines.s
+		-- INFO: counteracts Span +1 indexing
+		local pkg_end = p.lines.e - 1
+		if range_s <= pkg_start and pkg_end <= range_e then
+			packages_in_range[k] = p
+		end
+	end
+
+	return packages_in_range
 end
 
 ---comment
