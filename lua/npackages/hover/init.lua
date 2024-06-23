@@ -47,7 +47,7 @@ local function line_crate_info()
 		info.pref = hover.Type.VERSIONS
 	end
 
-	if pkg.vers.col:moved(-1, 1):contains(col) then
+	if pkg.vers.range.start.character - 1 <= col and col < pkg.vers.range["end"].character + 1 then
 		versions_info()
 	end
 

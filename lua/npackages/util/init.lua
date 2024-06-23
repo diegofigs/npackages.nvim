@@ -29,7 +29,7 @@ function M.get_package_in_position(uri, pos)
 
 	local pkg = nil
 	for _, p in pairs(packages) do
-		if pos.line == p.lines.s then
+		if pos.line == p.range.start.line then
 			pkg = p
 		end
 	end
@@ -53,10 +53,8 @@ function M.get_packages_in_range(uri, range)
 	---@type table<string,JsonPackage>
 	local packages_in_range = {}
 	for k, p in pairs(packages) do
-		local pkg_start = p.lines.s
-		-- INFO: counteracts Span +1 indexing
-		local pkg_end = p.lines.e - 1
-		if range_s <= pkg_start and pkg_end <= range_e then
+		local pkg_start = p.range.start.line
+		if range_s <= pkg_start and pkg_start <= range_e then
 			packages_in_range[k] = p
 		end
 	end

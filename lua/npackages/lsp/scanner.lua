@@ -1,6 +1,4 @@
 local semver = require("npackages.lib.semver")
-local types = require("npackages.types")
-local Span = types.Span
 
 local M = {}
 
@@ -8,11 +6,9 @@ local M = {}
 ---@field text string
 ---@field invalid boolean|nil
 ---@field workspace boolean|nil
----@field target string|nil
 ---@field kind JsonSectionKind
----@field name string|nil
----@field name_col Span|nil
----@field lines Span
+---@field name_range lsp.Range|nil
+---@field range lsp.Range
 local Section = {}
 M.Section = Section
 
@@ -28,16 +24,8 @@ M.JsonSectionKind = JsonSectionKind
 --- if the following syntax is used:
 --- explicit_name = { package = "package" }
 ---@field explicit_name string
----@field explicit_name_col Span
----@field lines Span
----@field syntax JsonPackageSyntax
+---@field range lsp.Range
 ---@field vers JsonPackageVers|nil
----@field registry JsonPackageRegistry|nil
----@field path JsonPackagePath|nil
----@field git JsonPackageGit|nil
----@field branch JsonPackageBranch|nil
----@field rev JsonPackageRev|nil
----@field pkg JsonPackagePkg|nil
 ---@field workspace JsonPackageWorkspace|nil
 ---@field opt JsonPackageOpt|nil
 ---@field section JsonSection|nil
@@ -45,76 +33,24 @@ M.JsonSectionKind = JsonSectionKind
 local Package = {}
 M.Package = Package
 
----@enum JsonPackageSyntax
-local JsonPackageSyntax = {
-	PLAIN = 1,
-}
-M.JsonPackageSyntax = JsonPackageSyntax
-
 ---@class JsonPackageVers
----@field reqs Requirement[]
+---@field reqs Requirement[]?
 ---@field text string
 ---@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackageRegistry
----@field text string
----@field is_pre boolean
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackagePath
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackageGit
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackageBranch
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackageRev
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackagePkg
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
+---@field range lsp.Range
 ---@field quote Quotes
 
 ---@class JsonPackageWorkspace
 ---@field enabled boolean
 ---@field text string
 ---@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
+---@field range lsp.Range
 
 ---@class JsonPackageOpt
 ---@field enabled boolean
 ---@field text string
 ---@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
+---@field range lsp.Range
 
 ---@enum DepKind
 local DepKind = {
@@ -166,7 +102,7 @@ end
 
 ---@return string
 function Package:package()
-	return self.pkg and self.pkg.text or self.explicit_name
+	return self.explicit_name
 end
 
 ---@return string
@@ -190,11 +126,7 @@ end
 ---@param override_name string|nil
 ---@return string
 function Section:display(override_name)
-	local text = "["
-
-	if self.target then
-		text = text .. self.target .. "."
-	end
+	local text = '"'
 
 	if self.workspace then
 		text = text .. "workspace."
@@ -206,12 +138,11 @@ function Section:display(override_name)
 		text = text .. "devDependencies"
 	end
 
-	local name = override_name or self.name
-	if name then
-		text = text .. "." .. name
+	if override_name then
+		text = text .. "." .. override_name
 	end
 
-	text = text .. "]"
+	text = text .. '"'
 
 	return text
 end
@@ -304,29 +235,20 @@ function M.scan_section(text, line_nr, start, kind)
 			text = text,
 			invalid = false,
 			kind = kind,
-			---end bound is assigned when the section ends
-			---@diagnostic disable-next-line: param-type-mismatch
-			lines = Span.new(line_nr, nil),
+			---end boundary is assigned when the section ends
+			---@diagnostic disable-next-line: missing-fields
+			range = { start = { line = line_nr, character = start } },
 		}
 
-		local target = prefix
-
-		-- if suffix then
-		-- 	local n_s, n, n_e = suffix:match("^%.%s*()(.+)()%s*$")
-		-- 	if n then
-		-- 		section.name = vim.trim(n)
-		-- 		---@cast suffix_s number
-		-- 		local offset = start + suffix_s - 1
-		-- 		section.name_col = Span.new(n_s - 1 + offset, n_e - 1 + offset)
-		-- 		suffix = ""
-		-- 	end
-		-- end
-
-		section.invalid = (target ~= "" or suffix ~= "")
+		section.invalid = prefix ~= ""
+			or suffix ~= ""
 			or (section.workspace and section.kind ~= JsonSectionKind.DEFAULT)
-			or (section.workspace and section.target ~= nil)
 
-		section.name_col = Span.new(start, start + suffix_s + 1)
+		section.name_range = {
+			start = { line = line_nr, character = start },
+			["end"] = { line = line_nr + 1, character = start + suffix_s + 1 },
+		}
+
 		return Section.new(section)
 	end
 
@@ -343,19 +265,23 @@ function M.scan_line(line, line_nr)
 			line:match([[^%s*()%"([^%s]+)%"()%s*:%s*(["'])()([^"']*)()(["']?).*$]])
 		if name then
 			---@type JsonPackage
-			return Package.new({
+			local obj = {
 				explicit_name = name,
-				explicit_name_col = Span.new(name_s - 1, name_e - 1),
-				lines = Span.new(line_nr, line_nr + 1),
-				syntax = JsonPackageSyntax.PLAIN,
+				range = {
+					start = { line = line_nr, character = name_s - 1 },
+					["end"] = { line = line_nr, character = name_e - 1 },
+				},
 				vers = {
 					text = text,
 					line = line_nr,
-					col = Span.new(str_s - 1, str_e - 1),
-					decl_col = Span.new(0, line:len()),
+					range = {
+						start = { line = line_nr, character = str_s - 1 },
+						["end"] = { line = line_nr, character = str_e - 1 },
+					},
 					quote = { s = quote_s, e = quote_e ~= "" and quote_e or nil },
 				},
-			})
+			}
+			return Package.new(obj)
 		end
 	end
 
@@ -407,7 +333,8 @@ function M.scan_package_doc(lines)
 		end
 		--- 3. section closure
 		if dep_section and section_end then
-			dep_section.lines.e = line_nr + 1
+			local character = line:find("(})")
+			dep_section.range["end"] = { line = line_nr, character = character or dep_section.range.start.character }
 			table.insert(sections, dep_section)
 			dep_section = nil
 		end

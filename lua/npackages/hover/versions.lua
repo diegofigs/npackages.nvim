@@ -15,7 +15,14 @@ local function insert_version(buf, package, text)
 	end
 	local line = package.vers.line
 
-	vim.api.nvim_buf_set_text(buf, line, package.vers.col.s, line, package.vers.col.e, { t })
+	vim.api.nvim_buf_set_text(
+		buf,
+		line,
+		package.vers.range.start.character,
+		line,
+		package.vers.range["end"].character,
+		{ t }
+	)
 end
 
 ---@param buf integer

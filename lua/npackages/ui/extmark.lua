@@ -38,7 +38,7 @@ M.display = function(buf, infos)
 			})
 		end
 
-		vim.api.nvim_buf_clear_namespace(buf, mark_ns, info.lines.s, info.lines.e)
+		vim.api.nvim_buf_clear_namespace(buf, mark_ns, info.range.start.line, info.range["end"].line)
 		vim.api.nvim_buf_set_extmark(buf, mark_ns, info.vers_line, -1, {
 			virt_text = virt_text,
 			virt_text_pos = "eol",

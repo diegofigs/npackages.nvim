@@ -1,7 +1,17 @@
-local types = require("npackages.types")
-local Span = types.Span
-
 local M = {}
+
+---@class Span
+---@field s integer -- 0-indexed inclusive
+---@field e integer -- 0-indexed exclusive
+local Span = {}
+M.Span = Span
+
+---@param s integer
+---@param e integer
+---@return Span
+function Span.new(s, e)
+	return setmetatable({ s = s, e = e }, { __index = Span })
+end
 
 ---@enum Cond
 local Cond = {

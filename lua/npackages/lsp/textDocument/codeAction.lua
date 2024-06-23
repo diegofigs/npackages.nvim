@@ -90,7 +90,7 @@ function M.get(params)
 		for k, p in pairs(packages_in_range) do
 			local cache = state.doc_cache[doc.uri]
 			local info = cache.info[k]
-			local pkg_line = p.lines.s
+			local pkg_line = p.range.start.line
 			if info then
 				for _, d in ipairs(diagnostics) do
 					if d.range.start.line == pkg_line then

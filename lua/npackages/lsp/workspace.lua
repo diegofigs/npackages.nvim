@@ -25,7 +25,7 @@ workspace.refresh = function(uri, workDoneToken)
 
 	local packages_to_fetch = {}
 	for _, p in pairs(doc_cache.packages) do
-		if p.dep_kind == 1 and p.registry == nil then
+		if p.dep_kind == 1 then
 			local metadata = state.api_cache[p:package()]
 			if not metadata then
 				table.insert(packages_to_fetch, p:package())

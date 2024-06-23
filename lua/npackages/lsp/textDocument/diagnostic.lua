@@ -39,7 +39,7 @@ function M.diagnose(params, callback)
 		local pkg_metadata = state.api_cache[pkg:package()]
 
 		if pkg_metadata then
-			if pkg.dep_kind == 1 and pkg.registry == nil then
+			if pkg.dep_kind == 1 then
 				local info, p_diagnostics = analyzer.analyze_package_metadata(pkg, pkg_metadata)
 				doc_cache.info[k] = info
 				vim.list_extend(doc_cache.diagnostics, p_diagnostics)

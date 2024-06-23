@@ -22,7 +22,7 @@ local State = {
 ---@field diagnostics lsp.Diagnostic[]
 
 ---@class PackageInfo
----@field lines Span
+---@field range lsp.Range
 ---@field vers_line integer
 ---@field vers_match ApiVersion|nil
 ---@field vers_update ApiVersion|nil
@@ -50,8 +50,6 @@ local State = {
 -- ---@field downloads integer
 ---@field homepage string|nil
 ---@field repository string|nil
--- ---@field documentation string|nil
--- ---@field categories string[]
 ---@field keywords string[]
 ---@field versions ApiVersion[]
 

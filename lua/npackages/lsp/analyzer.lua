@@ -1,7 +1,4 @@
 local semver = require("npackages.lib.semver")
-local scanner = require("npackages.lsp.scanner")
-local DepKind = scanner.DepKind
-
 local Cond = semver.Cond
 local SemVer = semver.SemVer
 
@@ -58,10 +55,7 @@ local PackageScope = {
 local function to_section_diagnostic(section, code, severity, data)
 	---@type lsp.Diagnostic
 	return {
-		range = {
-			start = { line = section.lines.s, character = section.name_col.s },
-			["end"] = { line = section.lines.e - 1, character = section.name_col.e },
-		},
+		range = section.range,
 		message = M.DiagnosticCodes[code],
 		code = code,
 		severity = severity,
@@ -79,10 +73,7 @@ end
 local function to_package_diagnostic(pkg, code, severity, scope, data)
 	---@type lsp.Diagnostic
 	local d = {
-		range = {
-			start = { line = pkg.lines.s, character = pkg.explicit_name_col.s },
-			["end"] = { line = pkg.lines.e - 1, character = pkg.explicit_name_col.e },
-		},
+		range = pkg.range,
 		message = M.DiagnosticCodes[code],
 		code = code,
 		severity = severity,
@@ -96,10 +87,7 @@ local function to_package_diagnostic(pkg, code, severity, scope, data)
 
 	if scope == PackageScope.VERS then
 		if pkg.vers then
-			d.range.start.line = pkg.vers.line
-			d.range["end"].line = pkg.vers.line
-			d.range.start.character = pkg.vers.col.s
-			d.range["end"].character = pkg.vers.col.e
+			d.range = pkg.vers.range
 		end
 	end
 
@@ -176,13 +164,13 @@ function M.analyze_package_metadata(package, api_package)
 
 	---@type PackageInfo
 	local info = {
-		lines = package.lines,
-		vers_line = package.vers and package.vers.line or package.lines.s,
+		range = package.range,
+		vers_line = package.vers and package.vers.line or package.range.start.line,
 		match_kind = M.MatchKind.NOMATCH,
 	}
 	local diagnostics = {}
 
-	if package.dep_kind == DepKind.REGISTRY then
+	if package.dep_kind == 1 then
 		if api_package then
 			if api_package.name ~= package:package() then
 				table.insert(
@@ -279,13 +267,7 @@ end
 ---@param _deps ApiDependency[]
 ---@return lsp.Diagnostic[]
 function M.analyze_package_deps(package, _version, _deps)
-	if package.path or package.git then
-		return {}
-	end
-
-	local diagnostics = {}
-
-	return diagnostics
+	return {}
 end
 
 ---@param r Requirement
