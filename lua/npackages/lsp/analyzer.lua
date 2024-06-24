@@ -96,6 +96,7 @@ end
 
 ---@param sections JsonSection[]
 ---@param packages JsonPackage[]
+---@return table<string,JsonSection>
 ---@return table<string,JsonPackage>
 ---@return lsp.Diagnostic[]
 function M.analyze_package_json(sections, packages)
@@ -150,7 +151,7 @@ function M.analyze_package_json(sections, packages)
 		end
 	end
 
-	return package_set, diagnostics
+	return section_set, package_set, diagnostics
 end
 
 ---@param package JsonPackage
@@ -165,7 +166,6 @@ function M.analyze_package_metadata(package, api_package)
 	---@type PackageInfo
 	local info = {
 		range = package.range,
-		vers_line = package.vers and package.vers.line or package.range.start.line,
 		match_kind = M.MatchKind.NOMATCH,
 	}
 	local diagnostics = {}

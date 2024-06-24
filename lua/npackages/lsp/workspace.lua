@@ -10,13 +10,11 @@ local workspace = {}
 ---@param uri lsp.DocumentUri
 ---@param workDoneToken lsp.ProgressToken
 workspace.refresh = function(uri, workDoneToken)
-	-- TODO: read file from doc_cache not editor
-	local lines = vim.api.nvim_buf_get_lines(vim.uri_to_bufnr(uri), 0, -1, false)
-
-	local sections, packages = scanner.scan_package_doc(lines)
-	local package_set, doc_diagnostics = analyzer.analyze_package_json(sections, packages)
+	local sections, packages = scanner.scan_package_doc(vim.split(state.documents[uri].text, "\n"))
+	local section_set, package_set, doc_diagnostics = analyzer.analyze_package_json(sections, packages)
 	---@type DocCache
 	local doc_cache = {
+		sections = section_set,
 		packages = package_set,
 		diagnostics = doc_diagnostics,
 		info = {},

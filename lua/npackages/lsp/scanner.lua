@@ -36,7 +36,6 @@ M.Package = Package
 ---@class JsonPackageVers
 ---@field reqs Requirement[]?
 ---@field text string
----@field line integer -- 0-indexed
 ---@field range lsp.Range
 ---@field quote Quotes
 
@@ -246,7 +245,7 @@ function M.scan_section(text, line_nr, start, kind)
 
 		section.name_range = {
 			start = { line = line_nr, character = start },
-			["end"] = { line = line_nr + 1, character = start + suffix_s + 1 },
+			["end"] = { line = line_nr, character = start + suffix_s + 1 },
 		}
 
 		return Section.new(section)

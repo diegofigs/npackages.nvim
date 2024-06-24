@@ -18,12 +18,12 @@ local State = {
 
 ---@class DocCache
 ---@field packages table<string,JsonPackage>
+---@field sections table<string,JsonSection>
 ---@field info table<string,PackageInfo>
 ---@field diagnostics lsp.Diagnostic[]
 
 ---@class PackageInfo
 ---@field range lsp.Range
----@field vers_line integer
 ---@field vers_match ApiVersion|nil
 ---@field vers_update ApiVersion|nil
 ---@field vers_upgrade ApiVersion|nil
