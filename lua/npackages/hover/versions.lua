@@ -10,9 +10,6 @@ local M = {}
 ---@param text string
 local function insert_version(buf, package, text)
 	local t = text
-	if state.cfg.insert_closing_quote and not package.vers.quote.e then
-		t = text .. package.vers.quote.s
-	end
 	local line = package.vers.range.start.line
 
 	vim.api.nvim_buf_set_text(

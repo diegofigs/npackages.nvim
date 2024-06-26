@@ -37,7 +37,7 @@ M.Package = Package
 ---@field reqs Requirement[]?
 ---@field text string
 ---@field range lsp.Range
----@field quote Quotes
+---@field quote lsp.Range
 
 ---@class JsonPackageWorkspace
 ---@field enabled boolean
@@ -59,10 +59,6 @@ local DepKind = {
 	WORKSPACE = 4,
 }
 M.DepKind = DepKind
-
----@class Quotes
----@field s string
----@field e string|nil
 
 ---@return JsonPackage
 function Package.new(obj)
@@ -277,7 +273,10 @@ function M.scan_line(line, line_nr)
 						start = { line = line_nr, character = str_s - 1 },
 						["end"] = { line = line_nr, character = str_e - 1 },
 					},
-					quote = { s = quote_s, e = quote_e ~= "" and quote_e or nil },
+					quote = {
+						start = { line = line_nr, character = str_s - 2 },
+						["end"] = { line = line_nr, character = str_e },
+					},
 				},
 			}
 			return Package.new(obj)

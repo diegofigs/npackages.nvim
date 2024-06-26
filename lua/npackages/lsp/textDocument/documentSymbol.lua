@@ -50,7 +50,7 @@ function M.get(params)
 			range = pkg.range,
 			selectionRange = pkg.range,
 			children = {
-				{ name = pkg.vers.text, kind = 8, range = pkg.vers.range, selectionRange = pkg.vers.range },
+				{ name = pkg.vers.text, kind = 8, range = pkg.vers.quote, selectionRange = pkg.vers.quote },
 			},
 		}
 		if pkg.section.kind == 1 then
