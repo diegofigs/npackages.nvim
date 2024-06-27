@@ -1,5 +1,4 @@
 local state = require("npackages.state")
-local lsp_state = require("npackages.lsp.state")
 local logger = require("npackages.logger")
 
 local M = {}
@@ -17,51 +16,6 @@ function M.cursor_pos()
 	return cursor[1] - 1, cursor[2]
 end
 
----@param uri lsp.DocumentUri
----@param pos lsp.Position
----@return JsonPackage|nil
-function M.get_package_in_position(uri, pos)
-	local cache = lsp_state.doc_cache[uri]
-	local packages = cache and cache.packages
-	if not packages then
-		return {}
-	end
-
-	local pkg = nil
-	for _, p in pairs(packages) do
-		if pos.line == p.range.start.line then
-			pkg = p
-		end
-	end
-
-	return pkg
-end
-
----@param uri lsp.DocumentUri
----@param range lsp.Range
----@return table<string,JsonPackage>
-function M.get_packages_in_range(uri, range)
-	local cache = lsp_state.doc_cache[uri]
-	local packages = cache and cache.packages
-	if not packages then
-		return {}
-	end
-
-	local range_s = range.start.line
-	local range_e = range["end"].line
-
-	---@type table<string,JsonPackage>
-	local packages_in_range = {}
-	for k, p in pairs(packages) do
-		local pkg_start = p.range.start.line
-		if range_s <= pkg_start and pkg_start <= range_e then
-			packages_in_range[k] = p
-		end
-	end
-
-	return packages_in_range
-end
-
 ---comment
 ---@param name string
 ---@return boolean
@@ -71,12 +25,6 @@ function M.binary_installed(name)
 	end
 
 	return vim.fn.executable(name) == 1
-end
-
----@param name string
----@return string
-function M.package_url(name)
-	return "https://www.npmjs.com/package/" .. name
 end
 
 ---@param url string

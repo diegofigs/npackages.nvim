@@ -7,6 +7,26 @@ local util = require("npackages.util")
 
 local Hover = {}
 
+---@param uri lsp.DocumentUri
+---@param pos lsp.Position
+---@return JsonPackage|nil
+local function get_package_in_position(uri, pos)
+	local cache = lsp_state.doc_cache[uri]
+	local packages = cache and cache.packages
+	if not packages then
+		return {}
+	end
+
+	local pkg = nil
+	for _, p in pairs(packages) do
+		if pos.line == p.range.start.line then
+			pkg = p
+		end
+	end
+
+	return pkg
+end
+
 ---@class LinePackageInfo
 ---@field pref PopupType
 ---@field crate JsonPackage
@@ -18,7 +38,7 @@ local function line_crate_info()
 	local buf = util.current_buf()
 	local line, col = util.cursor_pos()
 
-	local pkg = util.get_package_in_position(vim.uri_from_bufnr(buf), {
+	local pkg = get_package_in_position(vim.uri_from_bufnr(buf), {
 		line = line,
 		character = 0,
 	})
