@@ -11,6 +11,12 @@ M.PACKAGE_MANAGERS = {
 	pnpm = "pnpm",
 }
 
+---@param name string
+---@return string
+function M.package_url(name)
+	return "https://www.npmjs.com/package/" .. name
+end
+
 --- Checks if the currently opened file has content and JSON is in valid format
 M.is_valid_package_json = function()
 	local value = vim.api.nvim_buf_get_lines(0, 0, -1, false)

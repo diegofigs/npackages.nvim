@@ -1,9 +1,34 @@
 local state = require("npackages.lsp.state")
-local util = require("npackages.util")
 local analyzer = require("npackages.lsp.analyzer")
+local npm = require("npackages.lib.npm")
 local DiagnosticCodes = analyzer.DiagnosticCodes
 
 local M = {}
+
+---@param uri lsp.DocumentUri
+---@param range lsp.Range
+---@return table<string,JsonPackage>
+local function get_packages_in_range(uri, range)
+	local cache = state.doc_cache[uri]
+	local packages = cache and cache.packages
+	if not packages then
+		return {}
+	end
+
+	local range_s = range.start.line
+	local range_e = range["end"].line
+
+	---@type table<string,JsonPackage>
+	local packages_in_range = {}
+	for k, p in pairs(packages) do
+		local pkg_start = p.range.start.line
+		if range_s <= pkg_start and pkg_start <= range_e then
+			packages_in_range[k] = p
+		end
+	end
+
+	return packages_in_range
+end
 
 ---@param uri lsp.DocumentUri
 ---@param kind lsp.CodeActionKind
@@ -57,7 +82,7 @@ function M.get(params)
 	end
 
 	local range = params.range
-	local packages_in_range = util.get_packages_in_range(doc.uri, range)
+	local packages_in_range = get_packages_in_range(doc.uri, range)
 	local line_key, line_pkg = next(packages_in_range)
 	local diagnostics = state.diagnostics[doc.uri]
 
@@ -127,7 +152,7 @@ function M.get(params)
 	local upgrade_all_edits = {}
 	for _, d in pairs(diagnostics) do
 		if d.code == DiagnosticCodes.VERS_UPGRADE then
-			local d_packages = util.get_packages_in_range(doc.uri, d.range)
+			local d_packages = get_packages_in_range(doc.uri, d.range)
 			local d_line, d_pkg = next(d_packages)
 			if d_pkg then
 				local cache = state.doc_cache[doc.uri]
@@ -189,7 +214,7 @@ function M.get(params)
 			command = {
 				title = "Open url",
 				command = "open_url",
-				arguments = { util.package_url(line_pkg:package()) },
+				arguments = { npm.package_url(line_pkg:package()) },
 			},
 		}
 		table.insert(actions, npmjs_cmd)

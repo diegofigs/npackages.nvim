@@ -1,6 +1,6 @@
 local state = require("npackages.lsp.state")
 local scanner = require("npackages.lsp.scanner")
-local util = require("npackages.util")
+local npm = require("npackages.lib.npm")
 
 local M = {}
 
@@ -72,7 +72,7 @@ function M.hover(params)
 		end
 
 		hover_text = hover_text .. "\n## " .. text.registry_label
-		local pkg_url = util.package_url(pkg.name)
+		local pkg_url = npm.package_url(pkg.name)
 		hover_text = hover_text .. " " .. string.format("[%s](%s)", pkg_url, pkg_url)
 
 		if next(pkg.keywords) then
