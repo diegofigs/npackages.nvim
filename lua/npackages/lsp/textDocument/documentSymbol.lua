@@ -5,6 +5,43 @@ local progress = require("npackages.lsp.progress")
 
 local M = {}
 
+local function split(s, delimiter)
+	delimiter = delimiter or " "
+	local result = {}
+	for word in string.gmatch(s, "(.-)" .. delimiter) do
+		table.insert(result, word)
+	end
+	if #result == 0 then
+		return nil
+	end
+	return result
+end
+
+---Compares document symbols' ranges
+---@param a lsp.DocumentSymbol
+---@param b lsp.DocumentSymbol
+---@return boolean
+local function compare_symbols(a, b)
+	if a.range.start.line < b.range.start.line then
+		return true
+	elseif a.range.start.line == b.range.start.line then
+		return a.range.start.character < b.range.start.character
+	else
+		return false
+	end
+end
+
+---Sorts document symbol tree based on ranges
+---@param symbols lsp.DocumentSymbol[]
+local function sort_symbols(symbols)
+	table.sort(symbols, compare_symbols)
+	for _, symbol in ipairs(symbols) do
+		if symbol.children then
+			sort_symbols(symbol.children)
+		end
+	end
+end
+
 ---@param params lsp.DocumentSymbolParams
 ---@return lsp.DocumentSymbol[]
 function M.get(params)
@@ -13,10 +50,15 @@ function M.get(params)
 		return {}
 	end
 
-	local workDoneToken = params.workDoneToken or "1"
+	local workDoneToken = params.workDoneToken
 	progress.begin(workDoneToken, "Document Symbols")
 
-	local sections, packages = scanner.scan_package_doc(vim.split(doc.text, "\n"))
+	local lines = split(doc.text, "\n")
+	if not lines then
+		return {}
+	end
+
+	local sections, packages = scanner.scan_package_doc(lines)
 	local section_set, package_set = analyzer.analyze_package_json(sections, packages)
 
 	---@type lsp.DocumentSymbol[]
@@ -62,6 +104,8 @@ function M.get(params)
 	end
 
 	progress.finish(workDoneToken)
+
+	sort_symbols(symbols)
 
 	return symbols
 end

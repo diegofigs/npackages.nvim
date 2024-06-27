@@ -6,6 +6,7 @@ local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local workspace = require("npackages.lsp.workspace")
 local uuid = require("npackages.lib.uuid")
 local extmark = require("npackages.ui.extmark")
+local semanticTokens = require("npackages.lsp.textDocument.semanticTokens")
 
 local M = {}
 
@@ -19,6 +20,14 @@ local server_capabilities = {
 		workDoneProgress = true,
 		workspaceDiagnostics = false,
 		interFileDependencies = false,
+	},
+	documentSymbolProvider = {
+		workDoneProgress = true,
+	},
+	semanticTokensProvider = {
+		workDoneProgress = true,
+		legend = semanticTokens.legend,
+		full = true,
 	},
 }
 
@@ -46,6 +55,8 @@ local handlers = {
 	[vim.lsp.protocol.Methods.textDocument_codeAction] = textDocument.codeAction,
 	[vim.lsp.protocol.Methods.textDocument_diagnostic] = textDocument.diagnostic,
 	[vim.lsp.protocol.Methods.textDocument_completion] = textDocument.completion,
+	[vim.lsp.protocol.Methods.textDocument_documentSymbol] = textDocument.documentSymbol,
+	[vim.lsp.protocol.Methods.textDocument_semanticTokens_full] = textDocument.semanticTokens,
 
 	-- Notification handlers
 	[vim.lsp.protocol.Methods.textDocument_didOpen] = textDocument.didOpen,
