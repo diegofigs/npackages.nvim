@@ -231,8 +231,8 @@ end
 ---@return JsonPackage|nil
 function M.scan_line(line, line_nr)
 	do
-		---@diagnostic disable-next-line: unused-local
-		local name_s, name, name_e, quote_s, str_s, text, str_e, quote_e =
+		-- local name_s, name, name_e, quote_s, str_s, text, str_e, quote_e =
+		local name_s, name, name_e, _, str_s, text, str_e, _ =
 			line:match([[^%s*()%"([^%s]+)%"()%s*:%s*(["'])()([^"']*)()(["']?).*$]])
 		if name then
 			local obj = {
@@ -272,8 +272,8 @@ M.Script = Script
 ---@param line_nr integer
 ---@return JsonScript|nil
 function M.scan_script(line, line_nr)
-	---@diagnostic disable-next-line: unused-local
-	local name_s, name, name_e, quote_s, cmd_s, command, cmd_e, quote_e =
+	-- local name_s, name, name_e, quote_s, cmd_s, command, cmd_e, quote_e =
+	local name_s, name, name_e, _, _, command, _, _ =
 		line:match([[^%s*()%"([^%s]+)%"()%s*:%s*(["'])()([^"']*)()(["']?).*$]])
 	if name and command then
 		return {
