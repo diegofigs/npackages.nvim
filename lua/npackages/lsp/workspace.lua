@@ -10,14 +10,13 @@ local workspace = {}
 ---@param uri lsp.DocumentUri
 ---@param workDoneToken lsp.ProgressToken
 workspace.refresh = function(uri, workDoneToken)
-	-- TODO: read file from doc_cache not editor
-	local lines = vim.api.nvim_buf_get_lines(vim.uri_to_bufnr(uri), 0, -1, false)
-
-	local sections, packages = scanner.scan_package_doc(lines)
-	local package_set, doc_diagnostics = analyzer.analyze_package_json(sections, packages)
+	local sections, packages, scripts = scanner.scan_package_doc(vim.split(state.documents[uri].text, "\n"))
+	local section_set, package_set, doc_diagnostics = analyzer.analyze_package_json(sections, packages)
 	---@type DocCache
 	local doc_cache = {
+		sections = section_set,
 		packages = package_set,
+		scripts = scripts,
 		diagnostics = doc_diagnostics,
 		info = {},
 	}
@@ -25,7 +24,7 @@ workspace.refresh = function(uri, workDoneToken)
 
 	local packages_to_fetch = {}
 	for _, p in pairs(doc_cache.packages) do
-		if p.dep_kind == 1 and p.registry == nil then
+		if p.dep_kind == 1 then
 			local metadata = state.api_cache[p:package()]
 			if not metadata then
 				table.insert(packages_to_fetch, p:package())
@@ -34,9 +33,7 @@ workspace.refresh = function(uri, workDoneToken)
 	end
 
 	if #packages_to_fetch > 0 then
-		if workDoneToken then
-			progress.begin(workDoneToken, "Indexing")
-		end
+		progress.begin(workDoneToken, "Indexing")
 
 		local res = api.fetch_packages(packages_to_fetch, workDoneToken)
 		if res then
@@ -45,9 +42,7 @@ workspace.refresh = function(uri, workDoneToken)
 			end
 		end
 
-		if workDoneToken then
-			progress.finish(workDoneToken)
-		end
+		progress.finish(workDoneToken)
 	end
 end
 

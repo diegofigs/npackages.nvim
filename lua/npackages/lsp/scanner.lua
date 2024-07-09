@@ -1,6 +1,4 @@
 local semver = require("npackages.lib.semver")
-local types = require("npackages.types")
-local Span = types.Span
 
 local M = {}
 
@@ -8,11 +6,9 @@ local M = {}
 ---@field text string
 ---@field invalid boolean|nil
 ---@field workspace boolean|nil
----@field target string|nil
 ---@field kind JsonSectionKind
----@field name string|nil
----@field name_col Span|nil
----@field lines Span
+---@field name_range lsp.Range|nil
+---@field range lsp.Range
 local Section = {}
 M.Section = Section
 
@@ -20,24 +16,14 @@ M.Section = Section
 local JsonSectionKind = {
 	DEFAULT = 1,
 	DEV = 2,
+	SCRIPTS = 3,
 }
 M.JsonSectionKind = JsonSectionKind
 
 ---@class JsonPackage
---- The explicit name is either the name of the package, or a rename
---- if the following syntax is used:
---- explicit_name = { package = "package" }
 ---@field explicit_name string
----@field explicit_name_col Span
----@field lines Span
----@field syntax JsonPackageSyntax
+---@field range lsp.Range
 ---@field vers JsonPackageVers|nil
----@field registry JsonPackageRegistry|nil
----@field path JsonPackagePath|nil
----@field git JsonPackageGit|nil
----@field branch JsonPackageBranch|nil
----@field rev JsonPackageRev|nil
----@field pkg JsonPackagePkg|nil
 ---@field workspace JsonPackageWorkspace|nil
 ---@field opt JsonPackageOpt|nil
 ---@field section JsonSection|nil
@@ -45,76 +31,23 @@ M.JsonSectionKind = JsonSectionKind
 local Package = {}
 M.Package = Package
 
----@enum JsonPackageSyntax
-local JsonPackageSyntax = {
-	PLAIN = 1,
-}
-M.JsonPackageSyntax = JsonPackageSyntax
-
 ---@class JsonPackageVers
----@field reqs Requirement[]
+---@field reqs Requirement[]?
 ---@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackageRegistry
----@field text string
----@field is_pre boolean
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackagePath
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackageGit
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackageBranch
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackageRev
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
-
----@class JsonPackagePkg
----@field text string
----@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
----@field quote Quotes
+---@field range lsp.Range
+---@field quote lsp.Range
 
 ---@class JsonPackageWorkspace
 ---@field enabled boolean
 ---@field text string
 ---@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
+---@field range lsp.Range
 
 ---@class JsonPackageOpt
 ---@field enabled boolean
 ---@field text string
 ---@field line integer -- 0-indexed
----@field col Span
----@field decl_col Span
+---@field range lsp.Range
 
 ---@enum DepKind
 local DepKind = {
@@ -124,10 +57,6 @@ local DepKind = {
 	WORKSPACE = 4,
 }
 M.DepKind = DepKind
-
----@class Quotes
----@field s string
----@field e string|nil
 
 ---@return JsonPackage
 function Package.new(obj)
@@ -166,19 +95,12 @@ end
 
 ---@return string
 function Package:package()
-	return self.pkg and self.pkg.text or self.explicit_name
+	return self.explicit_name
 end
 
 ---@return string
 function Package:cache_key()
-	return string.format(
-		-- "%s:%s:%s:%s",
-		"%s",
-		-- self.section.target or "",
-		-- self.section.workspace and "workspace" or "",
-		-- self.section.kind,
-		self.explicit_name
-	)
+	return string.format("%s", self.explicit_name)
 end
 
 ---@param obj JsonSection
@@ -190,11 +112,7 @@ end
 ---@param override_name string|nil
 ---@return string
 function Section:display(override_name)
-	local text = "["
-
-	if self.target then
-		text = text .. self.target .. "."
-	end
+	local text = '"'
 
 	if self.workspace then
 		text = text .. "workspace."
@@ -204,21 +122,19 @@ function Section:display(override_name)
 		text = text .. "dependencies"
 	elseif self.kind == JsonSectionKind.DEV then
 		text = text .. "devDependencies"
+	elseif self.kind == JsonSectionKind.SCRIPTS then
+		text = text .. "scripts"
 	end
 
-	local name = override_name or self.name
-	if name then
-		text = text .. "." .. name
+	if override_name then
+		text = text .. "." .. override_name
 	end
 
-	text = text .. "]"
+	text = text .. '"'
 
 	return text
 end
 
---- Strips ^ and ~ from version
----@param value string - value from which to strip ^ and ~ from
----@return string | nil
 local function clean_version(value)
 	if value == nil then
 		return nil
@@ -228,9 +144,6 @@ local function clean_version(value)
 	return version
 end
 
---- Checks if the given string conforms to 1.0.0 version format
--- @param value: string - value to check if conforms
--- @return boolean
 local is_valid_dependency_version = function(value)
 	local cleaned_version = clean_version(value)
 
@@ -241,8 +154,6 @@ local is_valid_dependency_version = function(value)
 	local position = 0
 	local is_valid = true
 
-	-- Check that the first two chunks in version string are numbers
-	-- Everything beyond could be unstable version suffix
 	for chunk in string.gmatch(cleaned_version, "([^.]+)") do
 		if position ~= 2 and type(tonumber(chunk)) ~= "number" then
 			is_valid = false
@@ -254,25 +165,19 @@ local is_valid_dependency_version = function(value)
 	return is_valid
 end
 
---- Gets the dependency name from the given buffer line
----@param line string - buffer line from which to get the name from
----@return string?
 function M.get_dependency_name_from_line(line)
 	local value = {}
 
-	-- Tries to extract name and version
 	for chunk in string.gmatch(line, [["(.-)"]]) do
 		table.insert(value, chunk)
 	end
 
-	-- If no version or name fail
 	if not value[1] or not value[2] then
 		return nil
 	end
 
 	local is_valid_version = is_valid_dependency_version(value[2])
 
-	-- if is_installed and is_valid_version then
 	if is_valid_version then
 		return value[1]
 	end
@@ -286,134 +191,166 @@ end
 ---@param kind JsonSectionKind
 ---@return JsonSection|nil
 function M.scan_section(text, line_nr, start, kind)
-	---@type string, integer, string
 	local prefix, suffix_s, suffix
 
-	-- TODO: fix brittle parsing, prefix and suffix end up as empty strings
 	if kind == JsonSectionKind.DEFAULT then
 		prefix, suffix_s, suffix = text:match("^(.*)dependencies()(.*)$")
-	else
+	elseif kind == JsonSectionKind.DEV then
 		prefix, suffix_s, suffix = text:match("^(.*)devDependencies()(.*)$")
+	elseif kind == JsonSectionKind.SCRIPTS then
+		prefix, suffix_s, suffix = text:match("^(.*)scripts()(.*)$")
 	end
 
 	if prefix and suffix then
 		prefix = vim.trim(prefix)
 		suffix = vim.trim(suffix)
-		---@type JsonSection
 		local section = {
 			text = text,
 			invalid = false,
 			kind = kind,
-			---end bound is assigned when the section ends
-			---@diagnostic disable-next-line: param-type-mismatch
-			lines = Span.new(line_nr, nil),
+			range = { start = { line = line_nr, character = start } },
 		}
 
-		local target = prefix
-
-		-- if suffix then
-		-- 	local n_s, n, n_e = suffix:match("^%.%s*()(.+)()%s*$")
-		-- 	if n then
-		-- 		section.name = vim.trim(n)
-		-- 		---@cast suffix_s number
-		-- 		local offset = start + suffix_s - 1
-		-- 		section.name_col = Span.new(n_s - 1 + offset, n_e - 1 + offset)
-		-- 		suffix = ""
-		-- 	end
-		-- end
-
-		section.invalid = (target ~= "" or suffix ~= "")
+		section.invalid = prefix ~= ""
+			or suffix ~= ""
 			or (section.workspace and section.kind ~= JsonSectionKind.DEFAULT)
-			or (section.workspace and section.target ~= nil)
 
-		section.name_col = Span.new(start, start + suffix_s + 1)
+		section.name_range = {
+			start = { line = line_nr, character = start },
+			["end"] = { line = line_nr, character = start + suffix_s + 1 },
+		}
+
 		return Section.new(section)
 	end
 
 	return nil
 end
 
----comment
 ---@param line string
 ---@param line_nr integer
 ---@return JsonPackage|nil
 function M.scan_line(line, line_nr)
 	do
-		local name_s, name, name_e, quote_s, str_s, text, str_e, quote_e =
+		-- local name_s, name, name_e, quote_s, str_s, text, str_e, quote_e =
+		local name_s, name, name_e, _, str_s, text, str_e, _ =
 			line:match([[^%s*()%"([^%s]+)%"()%s*:%s*(["'])()([^"']*)()(["']?).*$]])
 		if name then
-			---@type JsonPackage
-			return Package.new({
+			local obj = {
 				explicit_name = name,
-				explicit_name_col = Span.new(name_s - 1, name_e - 1),
-				lines = Span.new(line_nr, line_nr + 1),
-				syntax = JsonPackageSyntax.PLAIN,
+				range = {
+					start = { line = line_nr, character = name_s - 1 },
+					["end"] = { line = line_nr, character = name_e - 1 },
+				},
 				vers = {
 					text = text,
 					line = line_nr,
-					col = Span.new(str_s - 1, str_e - 1),
-					decl_col = Span.new(0, line:len()),
-					quote = { s = quote_s, e = quote_e ~= "" and quote_e or nil },
+					range = {
+						start = { line = line_nr, character = str_s - 1 },
+						["end"] = { line = line_nr, character = str_e - 1 },
+					},
+					quote = {
+						start = { line = line_nr, character = str_s - 2 },
+						["end"] = { line = line_nr, character = str_e },
+					},
 				},
-			})
+			}
+			return Package.new(obj)
 		end
 	end
 
 	return nil
 end
 
----comment
+---@class JsonScript
+---@field name string
+---@field range lsp.Range
+---@field section JsonSection
+local Script = {}
+M.Script = Script
+
+---@param line string
+---@param line_nr integer
+---@return JsonScript|nil
+function M.scan_script(line, line_nr)
+	-- local name_s, name, name_e, quote_s, cmd_s, command, cmd_e, quote_e =
+	local name_s, name, name_e, _, _, command, _, _ =
+		line:match([[^%s*()%"([^%s]+)%"()%s*:%s*(["'])()([^"']*)()(["']?).*$]])
+	if name and command then
+		return {
+			name = name,
+			range = {
+				start = { line = line_nr, character = name_s - 1 },
+				["end"] = { line = line_nr, character = name_e - 1 },
+			},
+		}
+	end
+	return nil
+end
+
 ---@param lines string[]
 ---@return JsonSection[]
 ---@return JsonPackage[]
+---@return JsonScript[]
 function M.scan_package_doc(lines)
 	local sections = {}
 	local packages = {}
+	local scripts = {}
 
-	---@type JsonSection?
 	local dep_section
+	local script_section
 
 	for i, line in ipairs(lines) do
 		local line_nr = i - 1
 
-		---@type string, string
 		local section_text = line:match('^.-%"(dependencies)%".-$')
 		local dev_section_text = line:match('^.-%"(devDependencies)%".-$')
+		local script_section_text = line:match('^.-%"(scripts)%".-$')
 		local section_end = line:find("^.-%}.-$")
 		local package_version = M.get_dependency_name_from_line(line)
 
-		---NOTE:
-		--- iterate over every line (replicate for devDependencies):
-		--- 1. on dependencies section match, initialize section
-		--- 2. on package match, parse package and add to section
-		--- 3. on section closure match, finalize section and nil it
-
-		--- 1. dependency section
 		if section_text == "dependencies" then
 			local section_start = line:find('("dependencies")')
 			dep_section = M.scan_section(section_text, line_nr, section_start - 1, JsonSectionKind.DEFAULT)
 		elseif dev_section_text == "devDependencies" then
 			local section_start = line:find('("devDependencies")')
 			dep_section = M.scan_section(dev_section_text, line_nr, section_start - 1, JsonSectionKind.DEV)
+		elseif script_section_text == "scripts" then
+			local section_start = line:find('("scripts")')
+			script_section = M.scan_section(script_section_text, line_nr, section_start - 1, JsonSectionKind.SCRIPTS)
 		end
 
-		--- 2. package line
 		if dep_section and package_version then
 			local pkg = M.scan_line(line, line_nr)
 			if pkg then
 				pkg.section = dep_section
 				table.insert(packages, Package.new(pkg))
 			end
+		elseif script_section then
+			local script = M.scan_script(line, line_nr)
+			if script then
+				script.section = script_section
+				table.insert(scripts, script)
+			end
 		end
-		--- 3. section closure
-		if dep_section and section_end then
-			dep_section.lines.e = line_nr + 1
-			table.insert(sections, dep_section)
-			dep_section = nil
+
+		if (dep_section or script_section) and section_end then
+			local character = line:find("(})")
+			if dep_section then
+				dep_section.range["end"] =
+					{ line = line_nr, character = character or dep_section.range.start.character }
+				table.insert(sections, dep_section)
+				dep_section = nil
+			end
+			if script_section then
+				script_section.range["end"] =
+					{ line = line_nr, character = character or script_section.range.start.character }
+				table.insert(sections, script_section)
+				script_section = nil
+			end
 		end
 	end
 
-	return sections, packages
+	return sections, packages, scripts
 end
 
 return M

@@ -2,9 +2,12 @@ local state = require("npackages.lsp.state")
 
 local progress = {}
 
----@param workDoneToken lsp.ProgressToken
+---@param workDoneToken lsp.ProgressToken?
 ---@param title string
 progress.begin = function(workDoneToken, title)
+	if not workDoneToken then
+		return
+	end
 	---@type lsp.WorkDoneProgressParams
 	local begin_params = {
 		token = workDoneToken,
@@ -17,9 +20,12 @@ progress.begin = function(workDoneToken, title)
 	state.session.dispatchers.notification(vim.lsp.protocol.Methods.dollar_progress, begin_params)
 end
 
----@param workDoneToken lsp.ProgressToken
+---@param workDoneToken lsp.ProgressToken?
 ---@param message string
 progress.report = function(workDoneToken, message)
+	if not workDoneToken then
+		return
+	end
 	---@type lsp.WorkDoneProgressParams
 	local progress_params = {
 		token = workDoneToken,
@@ -32,9 +38,12 @@ progress.report = function(workDoneToken, message)
 	state.session.dispatchers.notification(vim.lsp.protocol.Methods.dollar_progress, progress_params)
 end
 
----@param workDoneToken lsp.ProgressToken
+---@param workDoneToken lsp.ProgressToken?
 ---@param message string?
 progress.finish = function(workDoneToken, message)
+	if not workDoneToken then
+		return
+	end
 	---@type lsp.WorkDoneProgressParams
 	local end_params = {
 		token = workDoneToken,

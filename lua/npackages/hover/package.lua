@@ -1,6 +1,7 @@
 local hover = require("npackages.hover.common")
 local state = require("npackages.state")
 local util = require("npackages.util")
+local npm = require("npackages.lib.npm")
 
 local M = {}
 
@@ -35,7 +36,7 @@ local function copy_value(ctx, line)
 	-- elseif ctx.docs_index == index then
 	-- 	copy(ctx.crate.documentation or util.docs_rs_url(ctx.crate.name))
 	elseif ctx.crates_io_index == index then
-		copy(util.package_url(ctx.crate.name))
+		copy(npm.package_url(ctx.crate.name))
 	end
 end
 
@@ -50,7 +51,7 @@ local function open_url(ctx, line)
 	-- elseif ctx.docs_index == index then
 	-- 	util.open_url(ctx.crate.documentation or util.docs_rs_url(ctx.crate.name))
 	elseif ctx.crates_io_index == index then
-		util.open_url(util.package_url(ctx.crate.name))
+		util.open_url(npm.package_url(ctx.crate.name))
 	end
 end
 
@@ -207,7 +208,7 @@ function M.open(crate, opts)
 			hl = highlight.crates_io_label,
 		},
 		{
-			text = string.format(text.crates_io, util.package_url(crate.name)),
+			text = string.format(text.crates_io, npm.package_url(crate.name)),
 			hl = highlight.crates_io,
 		},
 	})

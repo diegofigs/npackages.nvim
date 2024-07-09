@@ -3,6 +3,8 @@ local hover = require("npackages.lsp.textDocument.hover")
 local codeAction = require("npackages.lsp.textDocument.codeAction")
 local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local completion = require("npackages.lsp.textDocument.completion")
+local documentSymbol = require("npackages.lsp.textDocument.documentSymbol")
+local semanticTokens = require("npackages.lsp.textDocument.semanticTokens")
 
 local textDocument = {}
 
@@ -65,6 +67,20 @@ end
 ---@param callback fun(err, result: vim.lsp.CompletionResult)
 textDocument.completion = function(params, callback)
 	completion.complete(params, callback)
+end
+
+---@param params lsp.DocumentSymbolParams
+---@param callback fun(err, res: lsp.DocumentSymbol[])
+textDocument.documentSymbol = function(params, callback)
+	local result = documentSymbol.get(params)
+	callback(nil, result)
+end
+
+---@param params lsp.SemanticTokensParams
+---@param callback fun(err, res: lsp.SemanticTokens)
+textDocument.semanticTokens = function(params, callback)
+	local result = semanticTokens.get(params)
+	callback(nil, result)
 end
 
 return textDocument

@@ -49,11 +49,8 @@ local function create_select_items(versions)
 		local version = versions[index]
 		local is_unstable = string.match(version, "-")
 
-		-- TODO: Option to skip unstable version e.g next@11.1.0-canary
 		if not is_unstable then
 			table.insert(version_list, version)
-			-- else
-			-- 	table.insert(version_list, version)
 		end
 	end
 

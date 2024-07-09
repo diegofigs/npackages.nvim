@@ -3,9 +3,11 @@ local state = require("npackages.lsp.state")
 local textDocument = require("npackages.lsp.textDocument")
 local completion = require("npackages.lsp.textDocument.completion")
 local diagnostic = require("npackages.lsp.textDocument.diagnostic")
+local semanticTokens = require("npackages.lsp.textDocument.semanticTokens")
 local workspace = require("npackages.lsp.workspace")
 local uuid = require("npackages.lib.uuid")
 local extmark = require("npackages.ui.extmark")
+local methods = vim.lsp.protocol.Methods
 
 local M = {}
 
@@ -20,12 +22,20 @@ local server_capabilities = {
 		workspaceDiagnostics = false,
 		interFileDependencies = false,
 	},
+	documentSymbolProvider = {
+		workDoneProgress = true,
+	},
+	semanticTokensProvider = {
+		workDoneProgress = true,
+		legend = semanticTokens.legend,
+		full = true,
+	},
 }
 
 local handlers = {
 	---@param params lsp.InitializeParams
 	---@param callback fun(err: nil, result: lsp.InitializeResult)
-	[vim.lsp.protocol.Methods.initialize] = function(params, callback)
+	[methods.initialize] = function(params, callback)
 		local opts = params.initializationOptions or {}
 		server_capabilities.codeActionProvider = opts.codeAction or true
 		server_capabilities.completionProvider = (opts.completion or nil)
@@ -42,16 +52,18 @@ local handlers = {
 	end,
 
 	-- Request handlers
-	[vim.lsp.protocol.Methods.textDocument_hover] = textDocument.hover,
-	[vim.lsp.protocol.Methods.textDocument_codeAction] = textDocument.codeAction,
-	[vim.lsp.protocol.Methods.textDocument_diagnostic] = textDocument.diagnostic,
-	[vim.lsp.protocol.Methods.textDocument_completion] = textDocument.completion,
+	[methods.textDocument_hover] = textDocument.hover,
+	[methods.textDocument_codeAction] = textDocument.codeAction,
+	[methods.textDocument_diagnostic] = textDocument.diagnostic,
+	[methods.textDocument_completion] = textDocument.completion,
+	[methods.textDocument_documentSymbol] = textDocument.documentSymbol,
+	[methods.textDocument_semanticTokens_full] = textDocument.semanticTokens,
 
 	-- Notification handlers
-	[vim.lsp.protocol.Methods.textDocument_didOpen] = textDocument.didOpen,
-	[vim.lsp.protocol.Methods.textDocument_didChange] = textDocument.didChange,
-	[vim.lsp.protocol.Methods.textDocument_didClose] = textDocument.didClose,
-	[vim.lsp.protocol.Methods.textDocument_didSave] = textDocument.didSave,
+	[methods.textDocument_didOpen] = textDocument.didOpen,
+	[methods.textDocument_didChange] = textDocument.didChange,
+	[methods.textDocument_didClose] = textDocument.didClose,
+	[methods.textDocument_didSave] = textDocument.didSave,
 }
 
 M.messages = {}
@@ -116,9 +128,9 @@ function M.server(opts)
 			if handler then
 				handler(params, function(_, _)
 					if
-						method == vim.lsp.protocol.Methods.textDocument_didOpen
-						or method == vim.lsp.protocol.Methods.textDocument_didChange
-						or method == vim.lsp.protocol.Methods.textDocument_didSave
+						method == methods.textDocument_didOpen
+						or method == methods.textDocument_didChange
+						or method == methods.textDocument_didSave
 					then
 						local doc = params.textDocument
 						nio.run(function()
@@ -132,7 +144,7 @@ function M.server(opts)
 					end
 				end)
 			end
-			if method == vim.lsp.protocol.Methods.exit then
+			if method == methods.exit then
 				dispatchers.on_exit(0, 15)
 			end
 		end
