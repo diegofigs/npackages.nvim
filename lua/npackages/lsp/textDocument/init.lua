@@ -5,6 +5,9 @@ local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local completion = require("npackages.lsp.textDocument.completion")
 local documentSymbol = require("npackages.lsp.textDocument.documentSymbol")
 local semanticTokens = require("npackages.lsp.textDocument.semanticTokens")
+local codeLens = require("npackages.lsp.textDocument.codeLens")
+local definition = require("npackages.lsp.textDocument.definition")
+local inlayHint = require("npackages.lsp.textDocument.inlayHint")
 
 local textDocument = {}
 

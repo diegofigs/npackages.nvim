@@ -1,3 +1,5 @@
+local job = require("npackages.lib.job")
+local loading = require("npackages.ui.loading")
 local state = require("npackages.state")
 local logger = require("npackages.logger")
 
@@ -37,6 +39,37 @@ function M.open_url(url)
 	end
 
 	logger.warn("Couldn't open url")
+end
+
+--- Run the given npm script
+---@param script_name string
+---@param uri string
+function M.run_script(script_name, uri)
+	local pkg_manager = state.package_manager[vim.uri_to_bufnr(uri)]
+	local cmd = pkg_manager .. " run " .. script_name
+	local dir = vim.fn.fnamemodify(vim.uri_to_fname(uri), ":h")
+
+	vim.ui.select({ "Confirm", "Cancel" }, {
+		prompt = "Run `" .. cmd .. "`",
+	}, function(choice)
+		if choice == "Confirm" then
+			local id = loading.new("| 󰑓 Running " .. script_name)
+			job({
+				command = cmd,
+				cwd = dir,
+				on_start = function()
+					loading.start(id)
+				end,
+				on_success = function()
+					loading.stop(id)
+				end,
+				on_error = function()
+					loading.stop(id)
+				end,
+				output = true,
+			})
+		end
+	end)
 end
 
 return M
