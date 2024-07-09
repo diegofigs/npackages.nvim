@@ -19,6 +19,7 @@ local State = {
 ---@class DocCache
 ---@field packages table<string,JsonPackage>
 ---@field sections table<string,JsonSection>
+---@field scripts table<string,JsonScript>
 ---@field info table<string,PackageInfo>
 ---@field diagnostics lsp.Diagnostic[]
 

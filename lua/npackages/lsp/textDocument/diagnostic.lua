@@ -31,7 +31,7 @@ function M.diagnose(params, callback)
 		return
 	end
 
-	local workDoneToken = params.workDoneToken or "1"
+	local workDoneToken = params.workDoneToken
 	progress.begin(workDoneToken, "Diagnostics")
 
 	local doc_cache = state.doc_cache[doc.uri]

@@ -10,12 +10,13 @@ local workspace = {}
 ---@param uri lsp.DocumentUri
 ---@param workDoneToken lsp.ProgressToken
 workspace.refresh = function(uri, workDoneToken)
-	local sections, packages = scanner.scan_package_doc(vim.split(state.documents[uri].text, "\n"))
+	local sections, packages, scripts = scanner.scan_package_doc(vim.split(state.documents[uri].text, "\n"))
 	local section_set, package_set, doc_diagnostics = analyzer.analyze_package_json(sections, packages)
 	---@type DocCache
 	local doc_cache = {
 		sections = section_set,
 		packages = package_set,
+		scripts = scripts,
 		diagnostics = doc_diagnostics,
 		info = {},
 	}
@@ -32,9 +33,7 @@ workspace.refresh = function(uri, workDoneToken)
 	end
 
 	if #packages_to_fetch > 0 then
-		if workDoneToken then
-			progress.begin(workDoneToken, "Indexing")
-		end
+		progress.begin(workDoneToken, "Indexing")
 
 		local res = api.fetch_packages(packages_to_fetch, workDoneToken)
 		if res then
@@ -43,9 +42,7 @@ workspace.refresh = function(uri, workDoneToken)
 			end
 		end
 
-		if workDoneToken then
-			progress.finish(workDoneToken)
-		end
+		progress.finish(workDoneToken)
 	end
 end
 

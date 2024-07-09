@@ -1,6 +1,5 @@
 local state = require("npackages.lsp.state")
 local scanner = require("npackages.lsp.scanner")
-local analyzer = require("npackages.lsp.analyzer")
 local progress = require("npackages.lsp.progress")
 
 local M = {}
@@ -58,15 +57,15 @@ function M.get(params)
 		return {}
 	end
 
-	local sections, packages = scanner.scan_package_doc(lines)
-	local section_set, package_set = analyzer.analyze_package_json(sections, packages)
+	local sections, packages, scripts = scanner.scan_package_doc(lines)
 
 	---@type lsp.DocumentSymbol[]
 	local symbols = {}
 	local prod_idx = 0
 	local dev_idx = 0
+	local script_idx = 0
 
-	for _, section in pairs(section_set) do
+	for _, section in pairs(sections) do
 		---@type lsp.DocumentSymbol
 		local symbol = {
 			name = section.text,
@@ -82,9 +81,12 @@ function M.get(params)
 		if section.kind == 2 then
 			dev_idx = #symbols
 		end
+		if section.kind == 3 then
+			script_idx = #symbols
+		end
 	end
 
-	for _, pkg in pairs(package_set) do
+	for _, pkg in pairs(packages) do
 		---@type lsp.DocumentSymbol
 		local symbol = {
 			name = pkg.explicit_name,
@@ -101,6 +103,17 @@ function M.get(params)
 		if pkg.section.kind == 2 then
 			table.insert(symbols[dev_idx].children, symbol)
 		end
+	end
+
+	for _, script in pairs(scripts) do
+		---@type lsp.DocumentSymbol
+		local symbol = {
+			name = script.name,
+			kind = 12,
+			range = script.range,
+			selectionRange = script.range,
+		}
+		table.insert(symbols[script_idx].children, symbol)
 	end
 
 	progress.finish(workDoneToken)
