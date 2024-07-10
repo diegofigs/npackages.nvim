@@ -30,6 +30,7 @@
 
 ---@class TextConfig
 ---@field loading string
+---@field latest string
 ---@field version string
 ---@field prerelease string
 ---@field yanked string
@@ -39,6 +40,7 @@
 
 ---@class HighlightConfig
 ---@field loading string
+---@field latest string
 ---@field version string
 ---@field prerelease string
 ---@field yanked string
@@ -241,6 +243,7 @@
 
 ---@class npackages.UserTextConfig
 ---@field public loading? string
+---@field public latest? string
 ---@field public version? string
 ---@field public prerelease? string
 ---@field public yanked? string
@@ -250,6 +253,7 @@
 
 ---@class npackages.UserHighlightConfig
 ---@field public loading? string
+---@field public latest? string
 ---@field public version? string
 ---@field public prerelease? string
 ---@field public yanked? string

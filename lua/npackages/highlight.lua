@@ -2,6 +2,7 @@ local M = {}
 
 local highlights = {
 	{ "NpackagesNvimLoading", { default = true, link = "DiagnosticVirtualTextInfo" } },
+	{ "NpackagesNvimLatest", { default = true, link = "DiagnosticVirtualTextOk" } },
 	{ "NpackagesNvimVersion", { default = true, link = "DiagnosticVirtualTextInfo" } },
 	{ "NpackagesNvimPreRelease", { default = true, link = "DiagnosticVirtualTextError" } },
 	{ "NpackagesNvimYanked", { default = true, link = "DiagnosticVirtualTextError" } },
