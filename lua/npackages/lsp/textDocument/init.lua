@@ -5,6 +5,9 @@ local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local completion = require("npackages.lsp.textDocument.completion")
 local documentSymbol = require("npackages.lsp.textDocument.documentSymbol")
 local semanticTokens = require("npackages.lsp.textDocument.semanticTokens")
+local codeLens = require("npackages.lsp.textDocument.codeLens")
+local definition = require("npackages.lsp.textDocument.definition")
+local inlayHint = require("npackages.lsp.textDocument.inlayHint")
 
 local textDocument = {}
 
@@ -80,6 +83,27 @@ end
 ---@param callback fun(err, res: lsp.SemanticTokens)
 textDocument.semanticTokens = function(params, callback)
 	local result = semanticTokens.get(params)
+	callback(nil, result)
+end
+
+---@param params lsp.CodeLensParams
+---@param callback fun(err, res: lsp.CodeLens[])
+textDocument.codeLens = function(params, callback)
+	local result = codeLens.get(params)
+	callback(nil, result)
+end
+
+---@param params lsp.DefinitionParams
+---@param callback fun(err, res: lsp.LocationLink[])
+textDocument.definition = function(params, callback)
+	local result = definition.get(params)
+	callback(nil, result)
+end
+
+---@param params lsp.InlayHintParams
+---@param callback fun(err, res: lsp.InlayHint[])
+textDocument.inlayHint = function(params, callback)
+	local result = inlayHint.get(params)
 	callback(nil, result)
 end
 

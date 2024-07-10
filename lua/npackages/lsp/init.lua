@@ -37,6 +37,13 @@ function M.start()
 					util.open_url(url)
 				end
 			end,
+			run_script = function(cmd)
+				local script_name = cmd.arguments[1]
+				local uri = cmd.arguments[2]
+				if script_name and type(script_name) == "string" and uri and type(uri) == "string" then
+					util.run_script(script_name, uri)
+				end
+			end,
 		},
 		on_init = function(client, _)
 			lsp_state.session.client_id = client.id

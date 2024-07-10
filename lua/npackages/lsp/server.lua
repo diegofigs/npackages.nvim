@@ -22,14 +22,16 @@ local server_capabilities = {
 		workspaceDiagnostics = false,
 		interFileDependencies = false,
 	},
-	documentSymbolProvider = {
-		workDoneProgress = true,
-	},
+	documentSymbolProvider = true,
 	semanticTokensProvider = {
-		workDoneProgress = true,
 		legend = semanticTokens.legend,
 		full = true,
 	},
+	codeLensProvider = {
+		resolveProvider = false,
+	},
+	definitionProvider = true,
+	inlayHintProvider = true,
 }
 
 local handlers = {
@@ -58,6 +60,9 @@ local handlers = {
 	[methods.textDocument_completion] = textDocument.completion,
 	[methods.textDocument_documentSymbol] = textDocument.documentSymbol,
 	[methods.textDocument_semanticTokens_full] = textDocument.semanticTokens,
+	[methods.textDocument_codeLens] = textDocument.codeLens,
+	[methods.textDocument_definition] = textDocument.definition,
+	[methods.textDocument_inlayHint] = textDocument.inlayHint,
 
 	-- Notification handlers
 	[methods.textDocument_didOpen] = textDocument.didOpen,
