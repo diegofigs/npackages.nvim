@@ -40,6 +40,7 @@ M.MatchKind = {
 	YANKED = "yanked",
 	PRERELEASE = "prerelease",
 	NOMATCH = "nomatch",
+	LATEST = "latest",
 }
 
 ---@enum PackageScope
@@ -190,7 +191,7 @@ function M.analyze_package_metadata(package, api_package)
 			if semver.matches_requirements(newest.parsed, package:vers_reqs()) then
 				-- version matches, no upgrade available
 				info.vers_match = newest
-				info.match_kind = M.MatchKind.VERSION
+				info.match_kind = M.MatchKind.LATEST
 
 				if package.vers and package.vers.text ~= M.version_text(package, newest.parsed) then
 					info.vers_update = newest

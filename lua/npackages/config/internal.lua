@@ -277,9 +277,17 @@ entry(schema_text, {
     ]],
 })
 entry(schema_text, {
-	name = "version",
+	name = "latest",
 	type = STRING_TYPE,
 	default = "   %s",
+	description = [[
+        format string used for packages that match latest version
+    ]],
+})
+entry(schema_text, {
+	name = "version",
+	type = STRING_TYPE,
+	default = "   %s",
 	description = [[
         format string used for the latest compatible version
     ]],
@@ -342,6 +350,14 @@ entry(schema_hl, {
 	default = "NpackagesNvimLoading",
 	description = [[
         Highlight group used while loading package information.
+    ]],
+})
+entry(schema_hl, {
+	name = "latest",
+	type = STRING_TYPE,
+	default = "NpackagesNvimLatest",
+	description = [[
+        Highlight group used for packages on latest version.
     ]],
 })
 entry(schema_hl, {
