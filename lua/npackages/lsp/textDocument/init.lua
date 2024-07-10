@@ -86,4 +86,25 @@ textDocument.semanticTokens = function(params, callback)
 	callback(nil, result)
 end
 
+---@param params lsp.CodeLensParams
+---@param callback fun(err, res: lsp.CodeLens[])
+textDocument.codeLens = function(params, callback)
+	local result = codeLens.get(params)
+	callback(nil, result)
+end
+
+---@param params lsp.DefinitionParams
+---@param callback fun(err, res: lsp.LocationLink[])
+textDocument.definition = function(params, callback)
+	local result = definition.get(params)
+	callback(nil, result)
+end
+
+---@param params lsp.InlayHintParams
+---@param callback fun(err, res: lsp.InlayHint[])
+textDocument.inlayHint = function(params, callback)
+	local result = inlayHint.get(params)
+	callback(nil, result)
+end
+
 return textDocument
