@@ -16,6 +16,9 @@ local server_capabilities = {
 	textDocumentSync = {
 		change = 1,
 		openClose = true,
+		save = {
+			includeText = true,
+		},
 	},
 	diagnosticProvider = {
 		workDoneProgress = true,
