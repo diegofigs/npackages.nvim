@@ -34,6 +34,9 @@ end
 ---@param params lsp.DidSaveTextDocumentParams
 ---@param callback fun(err, res)
 function textDocument.didSave(params, callback)
+	local doc = params.textDocument
+	state.documents[doc.uri].text = params.text
+
 	callback(nil, nil)
 end
 
