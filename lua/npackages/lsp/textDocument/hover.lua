@@ -50,33 +50,35 @@ function M.hover(params)
 			hover_text = hover_text .. "\n"
 		end
 
+		hover_text = hover_text .. "\n## Metadata\n"
+
 		local date_format = "%Y-%m-%d"
 		if pkg.created then
-			hover_text = hover_text .. "\n## " .. text.created_label
+			hover_text = hover_text .. "\n- " .. text.created_label
 			hover_text = hover_text .. " " .. string.format("%s", pkg.created:display(date_format))
 		end
 
 		if pkg.updated then
-			hover_text = hover_text .. "\n## " .. text.updated_label
+			hover_text = hover_text .. "\n- " .. text.updated_label
 			hover_text = hover_text .. " " .. string.format("%s", pkg.updated:display(date_format))
 		end
 
 		if pkg.homepage then
-			hover_text = hover_text .. "\n## " .. text.homepage_label
+			hover_text = hover_text .. "\n- " .. text.homepage_label
 			hover_text = hover_text .. " " .. string.format("[%s](%s)", pkg.homepage, pkg.homepage)
 		end
 
 		if pkg.repository then
-			hover_text = hover_text .. "\n## " .. text.repository_label
+			hover_text = hover_text .. "\n- " .. text.repository_label
 			hover_text = hover_text .. " " .. string.format("[%s](%s)", pkg.repository, pkg.repository)
 		end
 
-		hover_text = hover_text .. "\n## " .. text.registry_label
+		hover_text = hover_text .. "\n- " .. text.registry_label
 		local pkg_url = npm.package_url(pkg.name)
 		hover_text = hover_text .. " " .. string.format("[%s](%s)", pkg_url, pkg_url)
 
 		if next(pkg.keywords) then
-			hover_text = hover_text .. "\n## " .. text.keywords_label
+			hover_text = hover_text .. "\n- " .. text.keywords_label
 			hover_text = hover_text .. " " .. kw_to_text(pkg.keywords)
 		end
 
