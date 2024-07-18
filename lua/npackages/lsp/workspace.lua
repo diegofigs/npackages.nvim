@@ -36,7 +36,7 @@ end
 
 ---@async
 ---@param uri lsp.DocumentUri
----@param workDoneToken lsp.ProgressToken
+---@param workDoneToken? lsp.ProgressToken
 workspace.refresh = function(uri, workDoneToken)
 	local sections, packages, scripts = scanner.scan_package_doc(vim.split(state.documents[uri].text, "\n"))
 	local section_set, package_set, doc_diagnostics = analyzer.analyze_package_json(sections, packages)
