@@ -58,6 +58,12 @@ local State = {
 ---@field num string
 ---@field parsed SemVer
 ---@field created DateTime
+---@field dependencies PackageRequirement[]
+---@field devDependencies PackageRequirement[]
+
+---@class PackageRequirement
+---@field name string
+---@field version string
 
 ---@class ApiDependency
 ---@field name string

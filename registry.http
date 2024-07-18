@@ -1,0 +1,18 @@
+### Get metadata
+ 
+GET https://registry.npmjs.org/pure-rand
+Content-Type: application/json
+
+### Get package
+ 
+GET https://registry.npmjs.org/pure-rand/6.1.0
+Content-Type: application/json
+
+### Search packages
+
+GET https://registry.npmjs.org/-/v1/search?text=rand&quality=0.5&maintenance=0.0&popularity=0.5
+Content-Type: application/json
+
+### Download count for package over a given period
+
+GET https://api.npmjs.org/downloads/point/last-week/pure-rand

@@ -29,16 +29,28 @@ api.parse_metadata = function(decoded)
 		versions = {},
 	}
 
-	---@diagnostic disable-next-line: no-unknown
-	for _, v in pairs(decoded.versions) do
-		---@type ApiVersion
-		local version = {
-			num = v.version,
-			parsed = semver.parse_version(v.version),
-			created = assert(DateTime.parse_iso_8601(decoded.time[v.version])),
+	for version, vdata in pairs(decoded.versions) do
+		local version_info = {
+			num = vdata.version,
+			parsed = semver.parse_version(vdata.version),
+			created = assert(DateTime.parse_iso_8601(decoded.time[version])),
+			dependencies = {},
+			devDependencies = {},
 		}
 
-		table.insert(package.versions, version)
+		if vdata.dependencies then
+			for dep, ver in pairs(vdata.dependencies) do
+				table.insert(version_info.dependencies, { name = dep, version = ver })
+			end
+		end
+
+		if vdata.devDependencies then
+			for dep, ver in pairs(vdata.devDependencies) do
+				table.insert(version_info.devDependencies, { name = dep, version = ver })
+			end
+		end
+
+		table.insert(package.versions, version_info)
 	end
 
 	table.sort(package.versions, function(a, b)
