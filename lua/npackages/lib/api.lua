@@ -13,7 +13,6 @@ local USERAGENT = vim.fn.shellescape("npackages.nvim (https://github.com/diegofi
 ---@param decoded table
 ---@return PackageMetadata
 api.parse_metadata = function(decoded)
-	---@type table<string,any>
 	local metadata = decoded
 
 	---@type PackageMetadata
@@ -22,9 +21,7 @@ api.parse_metadata = function(decoded)
 		description = assert(metadata.description),
 		created = assert(DateTime.parse_iso_8601(metadata.time.created)),
 		updated = assert(DateTime.parse_iso_8601(metadata.time.modified)),
-		-- downloads = assert(p.downloads),
 		homepage = metadata.homepage,
-		-- documentation = p.documentation,
 		repository = metadata.repository and metadata.repository.url and metadata.repository.url:match(
 			"^.*%+(.*)%..*$"
 		),
@@ -71,39 +68,6 @@ api.curl_package = function(package_name)
 
 		return metadata
 	end
-end
-
----@async
----@param package_names string[]
----@param workDoneToken? lsp.ProgressToken
----@return table<string, PackageMetadata>
-api.fetch_packages = function(package_names, workDoneToken)
-	local functions = {}
-	local pkg_total = #package_names
-	local pkg_count = 0
-	for _, package_name in ipairs(package_names) do
-		table.insert(functions, function()
-			local res = api.curl_package(package_name)
-			pkg_count = pkg_count + 1
-			nio.scheduler()
-			if workDoneToken then
-				progress.report(workDoneToken, string.format("%s/%s packages", pkg_count, pkg_total))
-			end
-			return res
-		end)
-	end
-	local outputs = nio.gather(functions)
-
-	local results = {}
-	for _, out in ipairs(outputs) do
-		local metadata = nio.fn.json_decode(out)
-
-		local pkg = api.parse_metadata(metadata)
-
-		results[pkg.name] = pkg
-	end
-
-	return results
 end
 
 return api

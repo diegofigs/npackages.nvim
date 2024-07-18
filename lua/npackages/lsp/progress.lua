@@ -21,8 +21,9 @@ progress.begin = function(workDoneToken, title)
 end
 
 ---@param workDoneToken lsp.ProgressToken?
----@param message string
-progress.report = function(workDoneToken, message)
+---@param message string?
+---@param percentage integer?
+progress.report = function(workDoneToken, message, percentage)
 	if not workDoneToken then
 		return
 	end
@@ -33,6 +34,7 @@ progress.report = function(workDoneToken, message)
 		value = {
 			kind = "report",
 			message = message,
+			percentage = percentage,
 		},
 	}
 	state.session.dispatchers.notification(vim.lsp.protocol.Methods.dollar_progress, progress_params)

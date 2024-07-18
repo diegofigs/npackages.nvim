@@ -2,11 +2,12 @@ local nio = require("nio")
 local state = require("npackages.lsp.state")
 local textDocument = require("npackages.lsp.textDocument")
 local completion = require("npackages.lsp.textDocument.completion")
-local diagnostic = require("npackages.lsp.textDocument.diagnostic")
 local semanticTokens = require("npackages.lsp.textDocument.semanticTokens")
 local workspace = require("npackages.lsp.workspace")
 local uuid = require("npackages.lib.uuid")
 local extmark = require("npackages.ui.extmark")
+local client = require("npackages.lsp.client")
+local progress = require("npackages.lsp.progress")
 local methods = vim.lsp.protocol.Methods
 
 local M = {}
@@ -132,18 +133,34 @@ function M.server(opts)
 			local handler = handlers[method]
 			if handler then
 				handler(params, function(_, _)
+					local doc = params.textDocument
+					local buf = vim.uri_to_bufnr(doc.uri)
+
 					if
 						method == methods.textDocument_didOpen
 						or method == methods.textDocument_didChange
 						or method == methods.textDocument_didSave
 					then
-						local doc = params.textDocument
+						if #state.session.task_queue > 0 then
+							state.session.task_queue[1].cancel()
+						end
+						local wdt = uuid()
+						progress.begin(wdt, "Indexing")
+
+						local done = nio.control.event()
+						local t = nio.run(function()
+							workspace.refresh(doc.uri, wdt)
+							nio.scheduler()
+							client.request_diagnostics(doc.uri)
+							done.set()
+						end, function(success)
+							progress.finish(wdt)
+						end)
+						state.session.task_queue[1] = t
+
 						nio.run(function()
-							workspace.refresh(doc.uri, uuid())
-						end, function()
-							diagnostic.request_diagnostics(doc.uri, uuid())
-							local buf = vim.uri_to_bufnr(doc.uri)
-							extmark.clear(buf)
+							done.wait()
+							nio.scheduler()
 							extmark.display(buf, state.doc_cache[doc.uri].info)
 						end)
 					end
