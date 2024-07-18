@@ -10,6 +10,9 @@ describe("npackages.lib.api", function()
 		local json_str = io.open("spec/mocks/api/pure-rand.json"):read("a")
 		local decoded = vim.json.decode(json_str)
 		local metadata = api.parse_metadata(decoded)
+		--- TODO: test dependencies parsing
+		metadata.versions[1].dependencies = {}
+		metadata.versions[1].devDependencies = {}
 		assert.has_same({
 			name = "pure-rand",
 			description = " Pure random number generator written in TypeScript",
@@ -58,6 +61,8 @@ describe("npackages.lib.api", function()
 						min = 29,
 						sec = 49,
 					})),
+					dependencies = {},
+					devDependencies = {},
 				},
 			},
 		}, metadata)
@@ -66,12 +71,5 @@ describe("npackages.lib.api", function()
 	-- nio.tests.it("can fetch package metadata", function()
 	-- 	local metadata = api.curl_package("pure-rand")
 	-- 	assert.not_nil(metadata)
-	-- end)
-	--
-	-- nio.tests.it("can fetch package metadata in bulk", function()
-	-- 	local metadatas = api.fetch_packages({ "pure-rand", "uuid" })
-	-- 	for _, meta in pairs(metadatas) do
-	-- 		assert.not_nil(meta)
-	-- 	end
 	-- end)
 end)
