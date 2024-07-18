@@ -112,4 +112,81 @@ M.parse = function()
 	return true
 end
 
+local function clean_version(value)
+	if value == nil then
+		return nil
+	end
+
+	local version = value:gsub("%^", ""):gsub("~", "")
+	return version
+end
+
+local is_valid_dependency_version = function(value)
+	local cleaned_version = clean_version(value)
+
+	if cleaned_version == nil then
+		return false
+	end
+
+	local position = 0
+	local is_valid = true
+
+	for chunk in string.gmatch(cleaned_version, "([^.]+)") do
+		if position ~= 2 and type(tonumber(chunk)) ~= "number" then
+			is_valid = false
+		end
+
+		position = position + 1
+	end
+
+	return is_valid
+end
+
+---comment
+---@param line string
+---@return string?
+function M.get_dependency_name_from_line(line)
+	local value = {}
+
+	for chunk in string.gmatch(line, [["(.-)"]]) do
+		table.insert(value, chunk)
+	end
+
+	if not value[1] or not value[2] then
+		return nil
+	end
+
+	local is_valid_version = is_valid_dependency_version(value[2])
+
+	if is_valid_version then
+		return value[1]
+	end
+
+	return nil
+end
+
+---comment
+---@param line string
+---@return string?
+---@return string?
+function M.get_dependency_from_line(line)
+	local value = {}
+
+	for chunk in string.gmatch(line, [["(.-)"]]) do
+		table.insert(value, chunk)
+	end
+
+	if not value[1] or not value[2] then
+		return nil
+	end
+
+	local is_valid_version = is_valid_dependency_version(value[2])
+
+	if is_valid_version then
+		return value[1], value[2]
+	end
+
+	return nil
+end
+
 return M

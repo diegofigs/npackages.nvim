@@ -12,8 +12,9 @@ local State = {
 		searches = {},
 		results = {},
 	},
-	---@class LspSession
-	session = {},
+	session = {
+		task_queue = {},
+	},
 }
 
 ---@class DocCache
@@ -21,7 +22,6 @@ local State = {
 ---@field sections table<string,JsonSection>
 ---@field scripts table<string,JsonScript>
 ---@field info table<string,PackageInfo>
----@field diagnostics lsp.Diagnostic[]
 
 ---@class PackageInfo
 ---@field range lsp.Range
@@ -37,6 +37,7 @@ local State = {
 ---@class LspSession
 ---@field client_id integer
 ---@field dispatchers vim.lsp.rpc.Dispatchers
+---@field task_queue nio.tasks.Task[]
 
 ---@class ApiPackageSummary
 ---@field name string
@@ -48,7 +49,6 @@ local State = {
 ---@field description string
 ---@field created DateTime
 ---@field updated DateTime
--- ---@field downloads integer
 ---@field homepage string|nil
 ---@field repository string|nil
 ---@field keywords string[]
@@ -58,7 +58,6 @@ local State = {
 ---@field num string
 ---@field parsed SemVer
 ---@field created DateTime
----@field deps ApiDependency[]|nil
 
 ---@class ApiDependency
 ---@field name string
