@@ -1,5 +1,4 @@
 local nio = require("nio")
-local progress = require("npackages.lsp.progress")
 local time = require("npackages.lib.time")
 local semver = require("npackages.lib.semver")
 local DateTime = time.DateTime
