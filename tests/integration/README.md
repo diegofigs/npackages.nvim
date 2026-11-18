@@ -38,7 +38,10 @@ manual smoke test.
 CI reports each manager independently. This suite complements the existing
 Busted specs; it does not replace them. It currently covers standalone projects,
 not workspaces, Yarn PnP, offline registries, or actual LazyVim picker rendering.
-It does not exercise LSP features. CLI lifecycle scripts are disabled.
+It does not exercise LSP features. CLI lifecycle scripts are disabled. Generated Yarn fixtures explicitly set
+`enableImmutableInstalls: false`: these tests intentionally create/change
+lockfiles, including when Yarn detects a CI environment. This setting is scoped
+to disposable test projects; user projects are not changed.
 
 On the sandboxed coding worker, use a writable npm download cache:
 

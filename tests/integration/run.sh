@@ -28,7 +28,7 @@ run_one() {
 	pnpm) touch "$fixture/pnpm-lock.yaml" ;;
 	yarn*)
 		touch "$fixture/yarn.lock"
-		printf 'nodeLinker: node-modules\nenableGlobalCache: true\n' >"$fixture/.yarnrc.yml"
+		printf 'nodeLinker: node-modules\nenableGlobalCache: true\nenableImmutableInstalls: false\n' >"$fixture/.yarnrc.yml"
 		;;
 	esac
 	PATH="$tools/node_modules/.bin:$PATH" NPACKAGES_FIXTURE="$fixture" NPACKAGES_MANAGER="$name" \
