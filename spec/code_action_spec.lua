@@ -8,6 +8,7 @@ describe("code actions without fetched metadata", function()
 		state.doc_cache[uri] = {
 			packages = {
 				dependency = {
+					dep_kind = 1,
 					range = { start = { line = 2 }, ["end"] = { line = 2 } },
 					package = function()
 						return "npackages-missing-metadata"

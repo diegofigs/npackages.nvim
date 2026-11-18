@@ -61,24 +61,24 @@ M.DepKind = DepKind
 
 ---@return JsonPackage
 function Package.new(obj)
+	local spec = obj.vers and obj.vers.text or ""
+	if obj.workspace or spec:match("^workspace:") then
+		obj.dep_kind = DepKind.WORKSPACE
+	elseif obj.path or spec:match("^file:") or spec:match("^link:") then
+		obj.dep_kind = DepKind.PATH
+	elseif obj.git then
+		obj.dep_kind = DepKind.GIT
+	else
+		obj.dep_kind = DepKind.REGISTRY
+	end
 	if obj.vers then
-		obj.vers.reqs = semver.parse_requirements(obj.vers.text)
+		obj.vers.reqs = obj.dep_kind == DepKind.REGISTRY and semver.parse_requirements(spec) or {}
 	end
 	if obj.workspace then
 		obj.workspace.enabled = obj.workspace.text ~= "false"
 	end
 	if obj.opt then
 		obj.opt.enabled = obj.opt.text ~= "false"
-	end
-
-	if obj.workspace then
-		obj.dep_kind = DepKind.WORKSPACE
-	elseif obj.path then
-		obj.dep_kind = DepKind.PATH
-	elseif obj.git then
-		obj.dep_kind = DepKind.GIT
-	else
-		obj.dep_kind = DepKind.REGISTRY
 	end
 
 	return setmetatable(obj, { __index = Package })
@@ -270,9 +270,9 @@ function M.scan_package_doc(lines)
 			script_section = M.scan_section(script_section_text, line_nr, section_start - 1, JsonSectionKind.SCRIPTS)
 		end
 
-		if dep_section and package_version then
+		if dep_section then
 			local pkg = M.scan_line(line, line_nr)
-			if pkg then
+			if pkg and (package_version or pkg.dep_kind ~= DepKind.REGISTRY) then
 				pkg.section = dep_section
 				table.insert(packages, Package.new(pkg))
 			end

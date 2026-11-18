@@ -14,13 +14,21 @@ local function fetch_packages(package_names, workDoneToken)
 	local functions = {}
 	local pkg_total = #package_names
 	local pkg_count = 0
+	local slots = nio.control.semaphore(4)
 	for _, package_name in ipairs(package_names) do
 		table.insert(functions, function()
+			slots.acquire()
 			local ok, pkg_metadata = pcall(function()
 				local res = api.curl_package(package_name)
+				-- Yield through a timer turn, so ready responses cannot starve UI updates.
+				nio.sleep(1)
 				local metadata = nio.fn.json_decode(res)
-				return api.parse_metadata(metadata)
+				nio.sleep(1)
+				return api.parse_metadata(metadata, function()
+					nio.sleep(1)
+				end)
 			end)
+			slots.release()
 			if ok then
 				state.api_cache[pkg_metadata.name] = pkg_metadata
 			end
@@ -56,10 +64,12 @@ workspace.refresh = function(uri, workDoneToken)
 	state.doc_cache[uri] = doc_cache
 
 	local packages_to_fetch = {}
+	local queued = {}
 	for _, p in pairs(doc_cache.packages) do
 		if p.dep_kind == 1 then
 			local metadata = state.api_cache[p:package()]
-			if not metadata then
+			if not metadata and not queued[p:package()] then
+				queued[p:package()] = true
 				table.insert(packages_to_fetch, p:package())
 			end
 		end

@@ -181,7 +181,7 @@ function M.get(params)
 		table.insert(actions, to_code_action(doc.uri, "source", "Upgrade all packages", upgrade_all_edits))
 	end
 
-	if line_pkg then
+	if line_pkg and line_pkg.dep_kind == 1 then
 		local info = state.api_cache[line_pkg:package()] or {}
 		---@type lsp.CodeAction
 		local repo_cmd = {

@@ -48,3 +48,9 @@ On the sandboxed coding worker, use a writable npm download cache:
 ```sh
 npm_config_cache=/tmp/npackages-npm-cache ./tests/integration/run.sh
 ```
+
+The Busted specs separately cover delayed registry diagnostics, cooperative
+metadata conversion, explicit workspace/local dependency classification, and a
+four-request concurrency bound. These use controlled registry stubs rather than
+network timing assertions. They do not establish responsiveness for every real
+manifest; JSON decoding still runs on the editor thread.

@@ -10,8 +10,9 @@ local USERAGENT = "npackages.nvim (https://github.com/diegofigs/npackages.nvim)"
 
 ---Maps a metadata table to PackageMetadata
 ---@param decoded table
+---@param yield_callback? fun() Optional cooperative checkpoint for async callers.
 ---@return PackageMetadata
-api.parse_metadata = function(decoded)
+api.parse_metadata = function(decoded, yield_callback)
 	local metadata = decoded
 
 	---@type PackageMetadata
@@ -29,7 +30,12 @@ api.parse_metadata = function(decoded)
 		versions = {},
 	}
 
+	local processed = 0
 	for version, vdata in pairs(decoded.versions) do
+		processed = processed + 1
+		if yield_callback and processed % 100 == 0 then
+			yield_callback()
+		end
 		local version_info = {
 			num = vdata.version,
 			parsed = semver.parse_version(vdata.version),
@@ -67,7 +73,20 @@ api.curl_package = function(package_name)
 	local url = REGISTRY .. "/" .. package_name
 	local process = nio.process.run({
 		cmd = "curl",
-		args = { "-sL", "--retry", "1", "-A", USERAGENT, url },
+		args = {
+			"-sL",
+			"--retry",
+			"1",
+			"-A",
+			USERAGENT,
+			"--connect-timeout",
+			"5",
+			"--max-time",
+			"20",
+			"--retry-max-time",
+			"25",
+			url,
+		},
 	})
 	if process then
 		local metadata = process.stdout.read()

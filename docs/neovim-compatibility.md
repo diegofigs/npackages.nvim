@@ -16,6 +16,7 @@ not require a migration to nvim-lspconfig or an externally installed server.
 
 ## Fixes in this update
 
+- Fetching is limited to four concurrent requests per refresh and deduplicates package names. Curl uses a 5-second connect timeout, a 20-second per-attempt timeout, and a 25-second retry window. Metadata conversion yields every 100 versions; JSON decoding itself is still synchronous. Explicit `workspace:`, `file:`, and `link:` specs are classified as local and skipped for registry fetching, version diagnostics, and registry-link actions. This does not resolve workspace package paths or discover local packages declared with ordinary semver ranges.
 - Initial dependency diagnostics wait for metadata loading to finish. Later refreshes retain the last published diagnostics while pending; actual fetch/decode failures are diagnosed after the attempt completes. A diagnostic pull before the document cache exists returns an empty report.
 - Registry fetching uses `curl -sL`; the old `sL` argument was interpreted as a URL. The User-Agent is passed as a literal argument rather than shell-quoted inside an argv list.
 - Diagnostics and request cancellation use modern client methods. Unknown requests return MethodNotFound; shutdown, exit, and reply acknowledgement follow the embedded transport contract.
@@ -77,7 +78,7 @@ user configuration and must not be treated as proof that this issue is fixed.
 Use `i` in the prompt as a workaround; `o` can create an extra line. Input
 normalization handles surrounding newlines but rejects embedded newlines.
 
-Package-manager detection still relies on adjacent lockfiles. Workspaces,
+Package-manager detection still relies on adjacent lockfiles. Workspace root/package discovery,
 ancestor lockfiles, mixed Yarn versions within one session, Yarn PnP, offline
 registry recovery, and rapid multi-buffer LSP edits are not covered by the new
 standalone-project integration matrix. Package commands change manifests and
@@ -87,7 +88,9 @@ is not forcibly discarded by refresh.
 ## Evidence and verification
 
 Local validation covered Neovim **0.11.5 and 0.12.6**: the Busted specs and
-all four real package-manager sequences passed on both versions.
+all four real package-manager sequences passed on both versions. Subsequent fetch
+responsiveness tests also pass on both: delayed requests, failure handling,
+cooperative conversion, explicit local specs, and bounded concurrency.
 
 The [integration guide](../tests/integration/README.md) lists pinned manager
 versions, commands, expected assertions, and how to rerun checks. These tests
