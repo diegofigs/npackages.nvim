@@ -1,7 +1,7 @@
 local logger = require("npackages.logger")
-local nio = require("nio")
 
 ---@class JobProps
+---@field cwd? string - working directory captured by the caller
 ---@field command string - string command to run
 ---@field on_success? function - function to invoke with the results
 ---@field on_error? function - function to invoke if the command fails
@@ -42,13 +42,15 @@ return function(props)
 		cwd = string.sub(file_path, 1, -13)
 	end
 
+	cwd = props.cwd or cwd
+
 	local out = ""
 	local err = ""
 	local out_count = 0
 	local err_count = 0
 
 	pcall(props.on_start)
-	nio.fn.jobstart(props.command, {
+	vim.fn.jobstart(props.command, {
 		cwd = cwd,
 		on_exit = function(_, exit_code)
 			if log_output then

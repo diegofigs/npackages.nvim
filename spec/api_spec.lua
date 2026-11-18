@@ -73,3 +73,25 @@ describe("npackages.lib.api", function()
 	-- 	assert.not_nil(metadata)
 	-- end)
 end)
+
+describe("registry fetch argv", function()
+	it("passes curl flags and a literal User-Agent without shell quoting", function()
+		local nio = require("nio")
+		local original, observed = nio.process.run, nil
+		nio.process.run = function(opts)
+			observed = opts
+			return { stdout = {
+				read = function()
+					return "metadata"
+				end,
+			}, close = function() end }
+		end
+		local ok, result = pcall(api.curl_package, "pure-rand")
+		nio.process.run = original
+		assert.is_true(ok, tostring(result))
+		assert.equals("metadata", result)
+		assert.equals("curl", observed.cmd)
+		assert.equals("-sL", observed.args[1])
+		assert.equals("npackages.nvim (https://github.com/diegofigs/npackages.nvim)", observed.args[5])
+	end)
+end)

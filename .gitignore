@@ -4,3 +4,7 @@
 
 # mocks
 node_modules
+
+# Neovim runtime log
+/nvim.log
+/.nvimlog

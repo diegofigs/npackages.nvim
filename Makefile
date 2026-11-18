@@ -9,3 +9,7 @@ lint:
 
 types:
 	./scripts/gen_types.lua
+
+.PHONY: test-integration
+test-integration:
+	./tests/integration/run.sh $(MANAGER)

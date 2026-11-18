@@ -43,18 +43,22 @@ local handlers = {
 	---@param callback fun(err: nil, result: lsp.InitializeResult)
 	[methods.initialize] = function(params, callback)
 		local opts = params.initializationOptions or {}
-		server_capabilities.codeActionProvider = opts.codeAction or true
+		server_capabilities.codeActionProvider = opts.codeAction ~= false
 		server_capabilities.completionProvider = (opts.completion or nil)
 			and {
 				triggerCharacters = completion.trigger_characters,
 			}
-		server_capabilities.hoverProvider = opts.hover or true
+		server_capabilities.hoverProvider = opts.hover ~= false
 		callback(nil, {
 			capabilities = server_capabilities,
 			serverInfo = {
 				name = "npackages_ls",
 			},
 		})
+	end,
+
+	[methods.shutdown] = function(_, callback)
+		callback(nil, nil)
 	end,
 
 	-- Request handlers
@@ -109,7 +113,15 @@ function M.server(opts)
 		---@param callback fun(...)
 		---@return boolean
 		---@return integer
-		function srv.request(method, params, callback)
+		function srv.request(method, params, callback, notify_reply)
+			request_id = request_id + 1
+			local id = request_id
+			local function reply(err, result)
+				if notify_reply then
+					notify_reply(id)
+				end
+				callback(err, result, id)
+			end
 			pcall(on_request, method, params)
 			table.insert(M.messages, {
 				method = method,
@@ -117,10 +129,11 @@ function M.server(opts)
 			})
 			local handler = handlers[method]
 			if handler then
-				handler(params, callback)
+				handler(params, reply)
+			else
+				reply({ code = -32601, message = "Method not found: " .. method }, nil)
 			end
-			request_id = request_id + 1
-			return true, request_id
+			return true, id
 		end
 
 		-- This method is called each time the client sends a notification to the server
@@ -170,8 +183,10 @@ function M.server(opts)
 				end)
 			end
 			if method == methods.exit then
-				dispatchers.on_exit(0, 15)
+				closing = true
+				dispatchers.on_exit(0, 0)
 			end
+			return true
 		end
 
 		-- Indicates if the client is shutting down
@@ -181,7 +196,10 @@ function M.server(opts)
 
 		-- Called when the client wants to terminate the process
 		function srv.terminate()
-			closing = true
+			if not closing then
+				closing = true
+				dispatchers.on_exit(0, 15)
+			end
 		end
 
 		return srv

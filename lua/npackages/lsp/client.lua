@@ -18,7 +18,7 @@ M.request_diagnostics = function(uri, workDoneToken)
 				textDocument = { uri = uri },
 				workDoneToken = workDoneToken,
 			}
-			return client.request(vim.lsp.protocol.Methods.textDocument_diagnostic, diagnostic_params)
+			return client:request(vim.lsp.protocol.Methods.textDocument_diagnostic, diagnostic_params)
 		end
 	end
 end
@@ -30,11 +30,7 @@ M.cancel_request = function(request_id)
 	if client_id then
 		local client = vim.lsp.get_client_by_id(client_id)
 		if client then
-			---@type lsp.CancelParams
-			local cancel_params = {
-				id = request_id,
-			}
-			return client.request(vim.lsp.protocol.Methods.dollar_cancelRequest, cancel_params)
+			return client:cancel_request(request_id)
 		end
 	end
 end

@@ -6,7 +6,7 @@ local DateTime = time.DateTime
 local api = {}
 
 local REGISTRY = "https://registry.npmjs.org"
-local USERAGENT = vim.fn.shellescape("npackages.nvim (https://github.com/diegofigs/npackages.nvim)")
+local USERAGENT = "npackages.nvim (https://github.com/diegofigs/npackages.nvim)"
 
 ---Maps a metadata table to PackageMetadata
 ---@param decoded table
@@ -67,7 +67,7 @@ api.curl_package = function(package_name)
 	local url = REGISTRY .. "/" .. package_name
 	local process = nio.process.run({
 		cmd = "curl",
-		args = { "sL", "--retry", "1", "-A", USERAGENT, url },
+		args = { "-sL", "--retry", "1", "-A", USERAGENT, url },
 	})
 	if process then
 		local metadata = process.stdout.read()

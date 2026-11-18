@@ -31,6 +31,7 @@ return function()
 	end
 
 	local buf = util.current_buf()
+	local cwd = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":h")
 	local cmd = get_command(dependency_name)
 	vim.ui.select({ "Confirm", "Cancel" }, {
 		prompt = "Run `" .. cmd .. "`",
@@ -38,6 +39,7 @@ return function()
 		if choice == "Confirm" then
 			local id = loading.new("|  Deleting " .. dependency_name .. " dependency")
 			job({
+				cwd = cwd,
 				command = cmd,
 				on_start = function()
 					loading.start(id)

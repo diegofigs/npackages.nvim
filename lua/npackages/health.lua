@@ -4,8 +4,20 @@ local util = require("npackages.util")
 local M = {}
 
 function M.check()
+	vim.health.start("Runtime")
+	if vim.fn.has("nvim-0.11") == 1 then
+		vim.health.ok("Neovim 0.11+ is available")
+	else
+		vim.health.error("Neovim 0.11 or newer is required")
+	end
+	local has_nio = pcall(require, "nio")
+	if has_nio then
+		vim.health.ok("nvim-nio is available")
+	else
+		vim.health.error("Install nvim-neotest/nvim-nio")
+	end
 	vim.health.start("Configuration")
-	if not config.validate_schema({}, config.schema, vim.g.npackages) then
+	if not config.validate_schema({}, config.schema, vim.g.npackages or {}) then
 		vim.health.ok("no issues found")
 	else
 		vim.health.error("does not pass schema validation")

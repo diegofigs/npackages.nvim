@@ -13,11 +13,12 @@ jobs:
     permissions:
       contents: read
       packages: read
+    continue-on-error: ${{ matrix.neovim_version == 'nightly' }}
     name: Run tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        neovim_version: ["nightly"]
+        neovim_version: ["v0.11.5", "stable", "nightly"]
 
     steps:
       - uses: actions/checkout@v4
@@ -25,3 +26,26 @@ jobs:
         uses: nvim-neorocks/nvim-busted-action@v1
         with:
           nvim_version: ${{ matrix.neovim_version }}
+
+  package-managers:
+    permissions:
+      contents: read
+    name: Package commands (${{ matrix.manager }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        manager: [npm, pnpm, yarn-classic, yarn-modern]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: v0.12.6
+      - name: Exercise real package commands
+        run: ./tests/integration/run.sh '${{ matrix.manager }}'

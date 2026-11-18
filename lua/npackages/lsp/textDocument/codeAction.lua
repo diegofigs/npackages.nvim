@@ -84,7 +84,7 @@ function M.get(params)
 	local range = params.range
 	local packages_in_range = get_packages_in_range(doc.uri, range)
 	local line_key, line_pkg = next(packages_in_range)
-	local diagnostics = state.diagnostics[doc.uri]
+	local diagnostics = state.diagnostics[doc.uri] or {}
 
 	if range.start.line == range["end"].line then
 		if line_pkg then
@@ -182,7 +182,7 @@ function M.get(params)
 	end
 
 	if line_pkg then
-		local info = state.api_cache[line_pkg:package()]
+		local info = state.api_cache[line_pkg:package()] or {}
 		---@type lsp.CodeAction
 		local repo_cmd = {
 			title = "Open homepage",
@@ -193,7 +193,9 @@ function M.get(params)
 				arguments = { info.homepage },
 			},
 		}
-		table.insert(actions, repo_cmd)
+		if type(info.homepage) == "string" then
+			table.insert(actions, repo_cmd)
+		end
 
 		---@type lsp.CodeAction
 		local homepage_cmd = {
@@ -205,7 +207,9 @@ function M.get(params)
 				arguments = { info.repository },
 			},
 		}
-		table.insert(actions, homepage_cmd)
+		if type(info.repository) == "string" then
+			table.insert(actions, homepage_cmd)
+		end
 
 		---@type lsp.CodeAction
 		local npmjs_cmd = {
