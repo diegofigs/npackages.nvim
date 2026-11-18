@@ -16,7 +16,8 @@ not require a migration to nvim-lspconfig or an externally installed server.
 
 ## Fixes in this update
 
-- Fetching is limited to four concurrent requests per refresh and deduplicates package names. Curl uses a 5-second connect timeout, a 20-second per-attempt timeout, and a 25-second retry window. Metadata conversion yields every 100 versions; JSON decoding itself is still synchronous. Explicit `workspace:`, `file:`, and `link:` specs are classified as local and skipped for registry fetching, version diagnostics, and registry-link actions. This does not resolve workspace package paths or discover local packages declared with ordinary semver ranges.
+- Registry responses download with compression to temporary files instead of accumulating in a Lua pipe buffer. Curl exit status is checked before asynchronous file reading, and partial timed-out responses are rejected. File output can be rewound by curl on retries, unlike stdout, avoiding concatenated invalid JSON. Files are removed after success or failure.
+- Fetching is limited to four concurrent requests per refresh and deduplicates package names. Curl uses a 5-second connect timeout, a 20-second per-attempt timeout, and a 25-second retry window, with a 45-second process deadline. Metadata conversion yields every 100 versions; JSON decoding itself is still synchronous. Explicit `workspace:`, `file:`, and `link:` specs are classified as local and skipped for registry fetching, version diagnostics, and registry-link actions. This does not resolve workspace package paths or discover local packages declared with ordinary semver ranges.
 - Initial dependency diagnostics wait for metadata loading to finish. Later refreshes retain the last published diagnostics while pending; actual fetch/decode failures are diagnosed after the attempt completes. A diagnostic pull before the document cache exists returns an empty report.
 - Registry fetching uses `curl -sL`; the old `sL` argument was interpreted as a URL. The User-Agent is passed as a literal argument rather than shell-quoted inside an argv list.
 - Diagnostics and request cancellation use modern client methods. Unknown requests return MethodNotFound; shutdown, exit, and reply acknowledgement follow the embedded transport contract.
@@ -105,3 +106,16 @@ Manual Mac confirmations from this investigation: package/version popups,
 code-action diff previews, the coexistence workaround above, and Add/Remove with
 Yarn Classic in diegofigs.tech. A diff preview is not evidence that applying every
 action is correct. CI results must be checked separately from local runs.
+
+### Large-manifest follow-up
+
+The reported dependency list is preserved in an anonymized
+[stress fixture](../tests/integration/fixtures/registry-stress.json). It exposed
+an approximately 68.6 MB uncompressed `@prisma/client` response and a 44.1 MB
+`prisma` response at investigation time. The original pipe fetch took about
+42 seconds and produced invalid concatenated retry JSON. The revised compressed
+file download fetched a valid client response in about 1.3 seconds. The full
+sample resolved all 18 registry dependencies in about 6 seconds with event-loop
+ticks throughout. The largest measured timer gap was about 520 ms, so this is
+not evidence that all UI pauses are eliminated. Live registry sizes and timings
+vary; use the stress command to reproduce current behavior.

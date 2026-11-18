@@ -43,13 +43,17 @@ run_one() {
 }
 cd "$repo"
 case "$manager" in
+registry-stress)
+	NPACKAGES_NIO="$cache/nio" XDG_STATE_HOME="$cache/state" \
+		nvim --headless -u NONE -l "$repo/tests/integration/registry_stress.lua"
+	;;
 npm) run_one npm npm@10.9.2 ;;
 pnpm) run_one pnpm pnpm@9.15.5 ;;
 yarn-classic) run_one yarn-classic yarn@1.22.22 ;;
 yarn-modern) run_one yarn-modern @yarnpkg/cli-dist@4.6.0 ;;
 all) for item in npm pnpm yarn-classic yarn-modern; do "$0" "$item"; done ;;
 *)
-	echo "Usage: $0 [all|npm|pnpm|yarn-classic|yarn-modern]" >&2
+	echo "Usage: $0 [all|npm|pnpm|yarn-classic|yarn-modern|registry-stress]" >&2
 	exit 2
 	;;
 esac

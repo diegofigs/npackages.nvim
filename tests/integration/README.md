@@ -54,3 +54,27 @@ metadata conversion, explicit workspace/local dependency classification, and a
 four-request concurrency bound. These use controlled registry stubs rather than
 network timing assertions. They do not establish responsiveness for every real
 manifest; JSON decoding still runs on the editor thread.
+
+## Large registry response reproduction
+
+```sh
+make test-integration MANAGER=registry-stress
+```
+
+This additional live-network test uses the reported Prisma/client/adapter,
+TypeScript, discord.js, and tooling manifest with anonymized workspace names.
+It opens a real `package.json` through the JSON file type plugin and embedded
+LSP, then checks that all 18 registry dependencies resolve on the first load,
+have matching versions and visible annotations, and produce no fetch-error
+diagnostics. The two
+explicit workspace dependencies must stay out of the registry cache. It reports
+total indexing time, timer ticks, and the largest event-loop gap. Timing is
+reported rather than compared with a hardware-dependent threshold. CI runs this
+as a separate job; the default four-manager command suite remains unchanged.
+
+Downloads now go to temporary files with compression. Curl must finish
+successfully before the file is read asynchronously and removed, so partial
+responses and retry output cannot be mistaken for a complete document. This
+avoids repeatedly copying large registry bodies inside nvim-nio's pipe reader.
+JSON decoding is still synchronous and can cause brief pauses for very large
+responses; these tests do not prove a zero-stall UI.

@@ -22,7 +22,7 @@ local function fetch_packages(package_names, workDoneToken)
 				local res = api.curl_package(package_name)
 				-- Yield through a timer turn, so ready responses cannot starve UI updates.
 				nio.sleep(1)
-				local metadata = nio.fn.json_decode(res)
+				local metadata = vim.json.decode(res)
 				nio.sleep(1)
 				return api.parse_metadata(metadata, function()
 					nio.sleep(1)

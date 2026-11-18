@@ -49,3 +49,18 @@ jobs:
           version: v0.12.6
       - name: Exercise real package commands
         run: ./tests/integration/run.sh '${{ matrix.manager }}'
+
+  registry-stress:
+    name: Large registry manifest
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: v0.12.6
+      - name: Resolve Prisma and workspace dependency sample
+        run: ./tests/integration/run.sh registry-stress
