@@ -2,9 +2,10 @@
 vim.opt.rtp:prepend(vim.fn.getcwd())
 vim.opt.rtp:append(assert(vim.env.NPACKAGES_NIO))
 vim.opt.rtp:append(assert(vim.env.NPACKAGES_SNACKS))
-require("snacks").setup({ input = { enabled = true }, picker = { enabled = true } })
-vim.ui.select = Snacks.picker.select
-vim.ui.input = Snacks.input.input
+local snacks = require("snacks")
+snacks.setup({ input = { enabled = true }, picker = { enabled = true } })
+vim.ui.select = snacks.picker.select
+vim.ui.input = snacks.input.input
 local buf = vim.api.nvim_get_current_buf()
 vim.api.nvim_buf_set_name(buf, vim.fn.tempname() .. "/package.json")
 require("npackages.state").package_manager[buf] = "pnpm"
@@ -15,7 +16,7 @@ local function fail(err)
 end
 vim.defer_fn(function()
 	local ok, err = pcall(function()
-		local picker = assert(Snacks.picker.get()[1], "selection picker did not open")
+		local picker = assert(snacks.picker.get()[1], "selection picker did not open")
 		picker:action("confirm")
 	end)
 	if not ok then

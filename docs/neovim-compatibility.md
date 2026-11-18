@@ -5,7 +5,7 @@
 This update raises the minimum from the previously advertised Neovim 0.9 to
 **0.11**. Client methods now use the 0.11 colon-call API, and timers use `vim.uv`.
 There is no replacement public setup API: configure `vim.g.npackages` before
-JSON filetype activation. Existing commands and attachment callbacks remain.
+JSON file type activation. Existing commands and attachment callbacks remain.
 
 - [Neovim client-method deprecations](https://neovim.io/doc/user/deprecated/) distinguish deprecations from removals. The old dot-style client methods were deprecated; the embedded transport still uses dot-style functions.
 - [Neovim 0.12 changes](https://neovim.io/doc/user/news-0.12/) remove legacy diagnostic APIs; no matching calls were found in npackages.

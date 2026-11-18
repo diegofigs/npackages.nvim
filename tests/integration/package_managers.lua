@@ -115,7 +115,7 @@ local ok, err = xpcall(function()
 		)
 	end
 	run("install", { "Confirm" })
-	local before, count = manifest(), jobs
+	local before_cancel, jobs_before_cancel = manifest(), jobs
 	choices, cancelled = { "Cancel" }, false
 	vim.api.nvim_set_current_buf(buf)
 	vim.cmd("Npackages add")
@@ -125,7 +125,10 @@ local ok, err = xpcall(function()
 		end),
 		"cancel callback missing"
 	)
-	assert(jobs == count and vim.deep_equal(before, manifest()), "cancel started a job or changed manifest")
+	assert(
+		jobs == jobs_before_cancel and vim.deep_equal(before_cancel, manifest()),
+		"cancel started a job or changed manifest"
+	)
 	print("PASS " .. manager .. " cancel")
 	for _, bad_input in ipairs({ "", "  ", "is-number\nis-odd", "is-number is-odd", "--global" }) do
 		local before, count = manifest(), jobs

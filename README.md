@@ -83,9 +83,9 @@ use { 'diegofigs/npackages.nvim', requires = { "nvim-neotest/nvim-nio" } }
 
 ## :zap: Quick Setup
 
-The JSON filetype plugin activates automatically for `package.json`; there is no
+The JSON file type plugin activates automatically for `package.json`; there is no
 public `setup()` function. With lazy.nvim, put configuration in `init`, before
-filetype activation. Do not use `opts` for npackages.
+file type activation. Do not use `opts` for npackages.
 
 ```lua
 {
