@@ -16,6 +16,7 @@ not require a migration to nvim-lspconfig or an externally installed server.
 
 ## Fixes in this update
 
+- Initial dependency diagnostics wait for metadata loading to finish. Later refreshes retain the last published diagnostics while pending; actual fetch/decode failures are diagnosed after the attempt completes. A diagnostic pull before the document cache exists returns an empty report.
 - Registry fetching uses `curl -sL`; the old `sL` argument was interpreted as a URL. The User-Agent is passed as a literal argument rather than shell-quoted inside an argv list.
 - Diagnostics and request cancellation use modern client methods. Unknown requests return MethodNotFound; shutdown, exit, and reply acknowledgement follow the embedded transport contract.
 - Explicitly disabled hover and code-action capabilities remain disabled. Missing registry metadata no longer crashes code actions; absent homepage/repository URLs do not produce unusable actions.

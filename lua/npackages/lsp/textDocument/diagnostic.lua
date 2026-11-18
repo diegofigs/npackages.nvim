@@ -33,10 +33,17 @@ function M.diagnose(params, callback)
 		return
 	end
 
+	local doc_cache = state.doc_cache[doc.uri]
+	if not doc_cache or doc_cache.loading then
+		-- Pull diagnostics can arrive before indexing or registry fetches finish.
+		-- Keep the last published result instead of diagnosing an empty cache.
+		callback(nil, { kind = "full", items = state.diagnostics[doc.uri] or {} })
+		return
+	end
+
 	local workDoneToken = params.workDoneToken
 	progress.begin(workDoneToken, "Diagnostics")
 
-	local doc_cache = state.doc_cache[doc.uri]
 	local new_diagnostics = {}
 	for k, pkg in pairs(doc_cache.packages) do
 		local pkg_metadata = state.api_cache[pkg:package()]

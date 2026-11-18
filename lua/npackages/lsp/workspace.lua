@@ -16,10 +16,14 @@ local function fetch_packages(package_names, workDoneToken)
 	local pkg_count = 0
 	for _, package_name in ipairs(package_names) do
 		table.insert(functions, function()
-			local res = api.curl_package(package_name)
-			local metadata = nio.fn.json_decode(res)
-			local pkg_metadata = api.parse_metadata(metadata)
-			state.api_cache[pkg_metadata.name] = pkg_metadata
+			local ok, pkg_metadata = pcall(function()
+				local res = api.curl_package(package_name)
+				local metadata = nio.fn.json_decode(res)
+				return api.parse_metadata(metadata)
+			end)
+			if ok then
+				state.api_cache[pkg_metadata.name] = pkg_metadata
+			end
 
 			pkg_count = pkg_count + 1
 			nio.scheduler()
@@ -28,7 +32,7 @@ local function fetch_packages(package_names, workDoneToken)
 				string.format("%s/%s packages", pkg_count, pkg_total),
 				math.floor(pkg_count / pkg_total * 100)
 			)
-			return pkg_metadata
+			return ok and pkg_metadata or nil
 		end)
 	end
 	return nio.gather(functions)
@@ -47,6 +51,7 @@ workspace.refresh = function(uri, workDoneToken)
 		scripts = scripts,
 		diagnostics = doc_diagnostics,
 		info = {},
+		loading = true,
 	}
 	state.doc_cache[uri] = doc_cache
 
@@ -63,6 +68,7 @@ workspace.refresh = function(uri, workDoneToken)
 	if #packages_to_fetch > 0 then
 		fetch_packages(packages_to_fetch, workDoneToken)
 	end
+	doc_cache.loading = false
 end
 
 ---@async

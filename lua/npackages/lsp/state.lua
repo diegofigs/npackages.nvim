@@ -18,6 +18,7 @@ local State = {
 }
 
 ---@class DocCache
+---@field loading? boolean Metadata is being fetched; defer dependency diagnostics.
 ---@field packages table<string,JsonPackage>
 ---@field sections table<string,JsonSection>
 ---@field scripts table<string,JsonScript>
