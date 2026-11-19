@@ -11,6 +11,10 @@ on:
         description: Existing release tag to publish to LuaRocks
         required: true
         type: string
+      revision:
+        description: LuaRocks rockspec revision
+        default: '1'
+        type: string
 
 permissions: {}
 
@@ -24,10 +28,14 @@ jobs:
     env:
       LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
     steps:
-      - name: Validate release tag
+      - name: Validate release inputs
         env:
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: '[[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]'
+          ROCKSPEC_REVISION: ${{ inputs.revision || '1' }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$ROCKSPEC_REVISION" =~ ^[1-9][0-9]*$ ]]
+        shell: bash
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -37,6 +45,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || env.LUAROCKS_API_KEY != ''
         with:
           version: ${{ inputs.tag || github.ref_name }}
+          specrev: ${{ inputs.revision || '1' }}
           dependencies: |
             lua >= 5.1
             nvim-nio
