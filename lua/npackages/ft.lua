@@ -46,4 +46,21 @@ M.setup = function(user_options)
 	})
 end
 
+function M.activate()
+	local buf = vim.api.nvim_get_current_buf()
+	local fname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":t")
+	if fname ~= "package.json" or not vim.api.nvim_buf_is_loaded(buf) then
+		return
+	end
+
+	if not vim.g.loaded_npackages then
+		vim.g.loaded_npackages = true
+		M.setup()
+	end
+
+	if state.cfg.lsp.enabled then
+		require("npackages.lsp").start()
+	end
+end
+
 return M
