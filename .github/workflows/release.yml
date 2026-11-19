@@ -5,6 +5,13 @@ on:
     tags:
       - "v*.*.*"
 
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish to LuaRocks
+        required: true
+        type: string
+
 permissions: {}
 
 jobs:
@@ -17,12 +24,27 @@ jobs:
     env:
       LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
     steps:
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: '[[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]'
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
       - name: Luarocks Upload
-        uses: nvim-neorocks/luarocks-tag-release@v5
-        if: env.LUAROCKS_API_KEY != ''
+        uses: nvim-neorocks/luarocks-tag-release@v8
+        if: github.event_name == 'workflow_dispatch' || env.LUAROCKS_API_KEY != ''
+        with:
+          version: ${{ inputs.tag || github.ref_name }}
+          dependencies: |
+            lua >= 5.1
+            nvim-nio
+        env:
+          GITHUB_REF_TYPE_OVERRIDE: tag
+          GITHUB_REF_NAME_OVERRIDE: ${{ inputs.tag || github.ref_name }}
   gh-release:
+    if: github.event_name == 'push'
     permissions:
       contents: write
     needs: luarocks-release
