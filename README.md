@@ -74,10 +74,25 @@ use { 'diegofigs/npackages.nvim', requires = { "nvim-neotest/nvim-nio" } }
 [**lazy.nvim**](https://github.com/folke/lazy.nvim)
 
 ```lua
+{ "diegofigs/npackages.nvim" }
+```
+
+With lazy.nvim package metadata enabled, the plugin and its dependency load
+when you first open or create a `package.json`. Remove `lazy = false` from
+existing specs to use this default.
+
+If you disable lazy.nvim package metadata, use the explicit spec:
+
+```lua
 {
-  'diegofigs/npackages.nvim',
-  dependencies = { "nvim-neotest/nvim-nio" }
-  lazy = false, -- This plugin is already lazy
+  "diegofigs/npackages.nvim",
+  dependencies = { "nvim-neotest/nvim-nio" },
+  event = { "BufReadPre package.json", "BufNewFile package.json" },
+  config = function()
+    if vim.bo.filetype == "json" then
+      require("npackages.ft").activate()
+    end
+  end,
 }
 ```
 
@@ -90,8 +105,6 @@ file type activation. Do not use `opts` for npackages.
 ```lua
 {
   "diegofigs/npackages.nvim",
-  dependencies = { "nvim-neotest/nvim-nio" },
-  lazy = false,
   init = function()
     vim.g.npackages = {
       on_attach = function(bufnr)
