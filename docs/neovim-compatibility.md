@@ -7,24 +7,44 @@ This update raises the minimum from the previously advertised Neovim 0.9 to
 There is no replacement public setup API: configure `vim.g.npackages` before
 JSON file type activation. Existing commands and attachment callbacks remain.
 
-- [Neovim client-method deprecations](https://neovim.io/doc/user/deprecated/) distinguish deprecations from removals. The old dot-style client methods were deprecated; the embedded transport still uses dot-style functions.
+- [Neovim client-method deprecations](https://neovim.io/doc/user/deprecated/) distinguish
+  deprecations from removals. The old dot-style client methods were deprecated; the embedded
+  transport still uses dot-style functions.
 - [Neovim 0.12 changes](https://neovim.io/doc/user/news-0.12/) remove legacy diagnostic APIs; no matching calls were found in npackages.
-- [The 0.12.6 RPC implementation](https://github.com/neovim/neovim/blob/v0.12.6/runtime/lua/vim/lsp/rpc.lua) defines transport requests, reply acknowledgements, notification success, and termination.
+- [The 0.12.6 RPC
+  implementation](https://github.com/neovim/neovim/blob/v0.12.6/runtime/lua/vim/lsp/rpc.lua) defines
+  transport requests, reply acknowledgements, notification success, and termination.
 
 The plugin continues to use `vim.lsp.start` with an in-process Lua server. It does
 not require a migration to nvim-lspconfig or an externally installed server.
 
 ## Fixes in this update
 
-- Registry responses download with compression to temporary files instead of accumulating in a Lua pipe buffer. Curl exit status is checked before asynchronous file reading, and partial timed-out responses are rejected. File output can be rewound by curl on retries, unlike stdout, avoiding concatenated invalid JSON. Files are removed after success or failure.
-- Fetching is limited to four concurrent requests per refresh and deduplicates package names. Curl uses a 5-second connect timeout, a 20-second per-attempt timeout, and a 25-second retry window, with a 45-second process deadline. Metadata conversion yields every 100 versions; JSON decoding itself is still synchronous. Explicit `workspace:`, `file:`, and `link:` specs are classified as local and skipped for registry fetching, version diagnostics, and registry-link actions. This does not resolve workspace package paths or discover local packages declared with ordinary semver ranges.
-- Initial dependency diagnostics wait for metadata loading to finish. Later refreshes retain the last published diagnostics while pending; actual fetch/decode failures are diagnosed after the attempt completes. A diagnostic pull before the document cache exists returns an empty report.
+- Registry responses download with compression to temporary files instead of accumulating in a Lua
+  pipe buffer. Curl exit status is checked before asynchronous file reading, and partial timed-out
+  responses are rejected. File output can be rewound by curl on retries, unlike stdout, avoiding
+  concatenated invalid JSON. Files are removed after success or failure.
+- Fetching is limited to four concurrent requests per refresh and deduplicates package names. Curl
+  uses a 5-second connect timeout, a 20-second per-attempt timeout, and a 25-second retry window,
+  with a 45-second process deadline. Metadata conversion yields every 100 versions; JSON decoding
+  itself is still synchronous. Explicit `workspace:`, `file:`, and `link:` specs are classified as
+  local and skipped for registry fetching, version diagnostics, and registry-link actions. This does
+  not resolve workspace package paths or discover local packages declared with ordinary SemVer
+  ranges.
+- Initial dependency diagnostics wait for metadata loading to finish. Later refreshes retain the
+  last published diagnostics while pending; actual fetch/decode failures are diagnosed after the
+  attempt completes. A diagnostic pull before the document cache exists returns an empty report.
 - Registry fetching uses `curl -sL`; the old `sL` argument was interpreted as a URL. The User-Agent is passed as a literal argument rather than shell-quoted inside an argv list.
-- Diagnostics and request cancellation use modern client methods. Unknown requests return MethodNotFound; shutdown, exit, and reply acknowledgement follow the embedded transport contract.
-- Explicitly disabled hover and code-action capabilities remain disabled. Missing registry metadata no longer crashes code actions; absent homepage/repository URLs do not produce unusable actions.
+- Diagnostics and request cancellation use modern client methods. Unknown requests return
+  MethodNotFound; shutdown, exit, and reply acknowledgement follow the embedded transport contract.
+- Explicitly disabled hover and code-action capabilities remain disabled. Missing registry metadata
+  no longer crashes code actions; absent homepage/repository URLs do not produce unusable actions.
 - npm lockfile detection includes the missing path separator. Yarn's major version is parsed after leading whitespace so Yarn Classic commands are selected correctly.
-- Add captures its package manager and buffer at invocation. Package commands retain the original project directory across UI prompts. Reload works from regular callbacks and refreshes the original buffer, including when hidden.
-- Add trims surrounding whitespace, rejects embedded whitespace/control characters and option-like input, and shell-quotes the package argument. This is not a complete npm package-spec validator.
+- Add captures its package manager and buffer at invocation. Package commands retain the original
+  project directory across UI prompts. Reload works from regular callbacks and refreshes the
+  original buffer, including when hidden.
+- Add trims surrounding whitespace, rejects embedded whitespace/control characters and option-like
+  input, and shell-quotes the package argument. This is not a complete npm package-spec validator.
 - Health checks report the Neovim baseline and nvim-nio availability, including when no user configuration is provided.
 
 ## LazyVim, jsonls, and Noice

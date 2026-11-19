@@ -357,3 +357,6 @@ vim.cmd.Npackages('change_version')
 Run `make test-integration` for npm, pnpm, Yarn Classic, and modern Yarn, or
 `make test-integration MANAGER=pnpm` for one manager. See the
 [integration test guide](tests/integration/README.md) for prerequisites and coverage.
+
+See [updating and releasing](docs/releasing.md) for local-copy updates, publishing
+v0.4.0, and switching lazy.nvim from a local checkout to a release pin.
