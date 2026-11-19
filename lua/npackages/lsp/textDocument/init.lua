@@ -24,6 +24,7 @@ end
 ---@param callback fun(err, res)
 function textDocument.didChange(params, callback)
 	local doc = params.textDocument
+	state.documents[doc.uri].version = doc.version
 	for _, change in ipairs(params.contentChanges) do
 		state.documents[doc.uri].text = change.text
 	end
@@ -99,8 +100,7 @@ end
 ---@param params lsp.DefinitionParams
 ---@param callback fun(err, res: lsp.LocationLink[])
 textDocument.definition = function(params, callback)
-	local result = definition.get(params)
-	callback(nil, result)
+	definition.get(params, callback)
 end
 
 ---@param params lsp.InlayHintParams
