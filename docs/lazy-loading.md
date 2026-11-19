@@ -21,7 +21,7 @@ both plugin loading and attachment. A bare install gets the events through
   `ft = "lua"` for its LuaLS integration. The corresponding `ft = "json"`
   trigger loads npackages on unrelated JSON files.
 
-If filetype plugins are enabled before lazy.nvim, Neovim can finish filetype
+If file type plugins are enabled before lazy.nvim, Neovim can finish file type
 detection for a new manifest before the lazy.nvim handler runs.
 [Lazy.nvim's event replay](https://github.com/folke/lazy.nvim/blob/main/lua/lazy/core/handler/event.lua)
 skips previously registered groups for `BufNewFile`. The lazy.nvim configuration

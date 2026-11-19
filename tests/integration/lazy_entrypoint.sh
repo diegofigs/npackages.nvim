@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export NPACKAGES_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-export NPACKAGES_LAZY="$(realpath "${1:?path to lazy.nvim checkout required}")"
-export NPACKAGES_NIO="$(realpath "${2:?path to nvim-nio checkout required}")"
+NPACKAGES_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+NPACKAGES_LAZY="$(realpath "${1:?path to lazy.nvim checkout required}")"
+NPACKAGES_NIO="$(realpath "${2:?path to nvim-nio checkout required}")"
+export NPACKAGES_ROOT NPACKAGES_LAZY NPACKAGES_NIO
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 export XDG_CONFIG_HOME="$scratch/config" XDG_CACHE_HOME="$scratch/cache"
 export XDG_DATA_HOME="$scratch/data" XDG_STATE_HOME="$scratch/state"
 mkdir -p "$scratch/existing" "$scratch/new" "$scratch/second"
-printf '{}\n' > "$scratch/existing/package.json"
-printf '{}\n' > "$scratch/second/package.json"
-printf '{}\n' > "$scratch/other.json"
+printf '{}\n' >"$scratch/existing/package.json"
+printf '{}\n' >"$scratch/second/package.json"
+printf '{}\n' >"$scratch/other.json"
 touch "$scratch/other.txt"
 export NPACKAGES_SECOND="$scratch/second/package.json"
 
@@ -54,31 +55,31 @@ if not ok then
 end'
 
 run() {
-  local mode=$1 expected=$2 opening=$3 file=${4:-}
-  local args=() before=() after=()
-  [[ "$mode" == early || "$mode" == explicit ]] && before+=(--cmd 'filetype plugin on')
-  if [[ "$mode" == native ]]; then
-    before+=(--cmd 'lua vim.opt.rtp:prepend(vim.env.NPACKAGES_ROOT); vim.opt.rtp:append(vim.env.NPACKAGES_NIO)')
-  else
-    before+=(--cmd "$setup")
-  fi
-  if [[ "$opening" == startup && -n "$file" ]]; then
-    args+=("$file")
-  elif [[ -n "$file" ]]; then
-    NPACKAGES_EDIT="$file"
-    export NPACKAGES_EDIT
-    after+=(-c 'lua vim.cmd.edit(vim.env.NPACKAGES_EDIT)')
-  fi
-  NPACKAGES_MODE="$mode" NPACKAGES_EXPECT="$expected" "${NVIM:-nvim}" \
-    --headless -u NORC -i NONE "${before[@]}" "${args[@]}" "${after[@]}" -c "$check" -c 'qa!'
+	local mode=$1 expected=$2 opening=$3 file=${4:-}
+	local args=() before=() after=()
+	[[ "$mode" == early || "$mode" == explicit ]] && before+=(--cmd 'filetype plugin on')
+	if [[ "$mode" == native ]]; then
+		before+=(--cmd 'lua vim.opt.rtp:prepend(vim.env.NPACKAGES_ROOT); vim.opt.rtp:append(vim.env.NPACKAGES_NIO)')
+	else
+		before+=(--cmd "$setup")
+	fi
+	if [[ "$opening" == startup && -n "$file" ]]; then
+		args+=("$file")
+	elif [[ -n "$file" ]]; then
+		NPACKAGES_EDIT="$file"
+		export NPACKAGES_EDIT
+		after+=(-c 'lua vim.cmd.edit(vim.env.NPACKAGES_EDIT)')
+	fi
+	NPACKAGES_MODE="$mode" NPACKAGES_EXPECT="$expected" "${NVIM:-nvim}" \
+		--headless -u NORC -i NONE "${before[@]}" "${args[@]}" "${after[@]}" -c "$check" -c 'qa!'
 }
 
 run default unloaded startup
 run default unloaded startup "$scratch/other.txt"
 run default unloaded startup "$scratch/other.json"
 for mode in default early explicit native; do
-  for opening in startup edit; do
-    run "$mode" loaded "$opening" "$scratch/existing/package.json"
-    run "$mode" loaded "$opening" "$scratch/new/package.json"
-  done
+	for opening in startup edit; do
+		run "$mode" loaded "$opening" "$scratch/existing/package.json"
+		run "$mode" loaded "$opening" "$scratch/new/package.json"
+	done
 done
