@@ -14,7 +14,7 @@ checkouts are bootstrapped there too. It does not change your global CLI version
 Neovim config, or an existing project. Failed project fixtures are retained at
 the path printed in the log; successful fixtures are deleted.
 
-Current baseline: npm 10.9.2, pnpm 9.15.5, Yarn Classic 1.22.22, Yarn 4.6.0.
+Current baseline: npm 10.9.2, pnpm 10.34.9, Yarn Classic 1.22.22, Yarn 4.6.0.
 These are explicit compatibility baselines, not claims about latest releases.
 Update pins deliberately and rerun all four before changing the supported set.
 

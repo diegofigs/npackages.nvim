@@ -31,6 +31,10 @@ run_one() {
 		printf 'nodeLinker: node-modules\nenableGlobalCache: true\nenableImmutableInstalls: false\n' >"$fixture/.yarnrc.yml"
 		;;
 	esac
+	if [[ "$name" == pnpm ]]; then
+		PATH="$tools/node_modules/.bin:$PATH" NPACKAGES_FIXTURE="$fixture" NPACKAGES_NIO="$cache/nio" XDG_STATE_HOME="$cache/state" \
+			nvim --headless -u NONE -l "$repo/tests/integration/pnpm_definition.lua"
+	fi
 	PATH="$tools/node_modules/.bin:$PATH" NPACKAGES_FIXTURE="$fixture" NPACKAGES_MANAGER="$name" \
 		NPACKAGES_NIO="$cache/nio" XDG_STATE_HOME="$cache/state" XDG_CACHE_HOME="$cache/cache" XDG_DATA_HOME="$cache/data" YARN_CACHE_FOLDER="$cache/yarn-cache" YARN_ENABLE_SCRIPTS=false \
 		npm_config_ignore_scripts=true npm_config_audit=false npm_config_fund=false \
@@ -48,7 +52,7 @@ registry-stress)
 		nvim --headless -u NONE -l "$repo/tests/integration/registry_stress.lua"
 	;;
 npm) run_one npm npm@10.9.2 ;;
-pnpm) run_one pnpm pnpm@9.15.5 ;;
+pnpm) run_one pnpm pnpm@10.34.9 ;;
 yarn-classic) run_one yarn-classic yarn@1.22.22 ;;
 yarn-modern) run_one yarn-modern @yarnpkg/cli-dist@4.6.0 ;;
 all) for item in npm pnpm yarn-classic yarn-modern; do "$0" "$item"; done ;;
