@@ -43,18 +43,22 @@ local handlers = {
 	---@param callback fun(err: nil, result: lsp.InitializeResult)
 	[methods.initialize] = function(params, callback)
 		local opts = params.initializationOptions or {}
-		server_capabilities.codeActionProvider = opts.codeAction or true
+		server_capabilities.codeActionProvider = opts.codeAction ~= false
 		server_capabilities.completionProvider = (opts.completion or nil)
 			and {
 				triggerCharacters = completion.trigger_characters,
 			}
-		server_capabilities.hoverProvider = opts.hover or true
+		server_capabilities.hoverProvider = opts.hover ~= false
 		callback(nil, {
 			capabilities = server_capabilities,
 			serverInfo = {
 				name = "npackages_ls",
 			},
 		})
+	end,
+
+	[methods.shutdown] = function(_, callback)
+		callback(nil, nil)
 	end,
 
 	-- Request handlers
@@ -109,7 +113,15 @@ function M.server(opts)
 		---@param callback fun(...)
 		---@return boolean
 		---@return integer
-		function srv.request(method, params, callback)
+		function srv.request(method, params, callback, notify_reply)
+			request_id = request_id + 1
+			local id = request_id
+			local function reply(err, result)
+				if notify_reply then
+					notify_reply(id)
+				end
+				callback(err, result, id)
+			end
 			pcall(on_request, method, params)
 			table.insert(M.messages, {
 				method = method,
@@ -117,10 +129,11 @@ function M.server(opts)
 			})
 			local handler = handlers[method]
 			if handler then
-				handler(params, callback)
+				handler(params, reply)
+			else
+				reply({ code = -32601, message = "Method not found: " .. method }, nil)
 			end
-			request_id = request_id + 1
-			return true, request_id
+			return true, id
 		end
 
 		-- This method is called each time the client sends a notification to the server
@@ -139,39 +152,55 @@ function M.server(opts)
 					local doc = params.textDocument
 					local buf = vim.uri_to_bufnr(doc.uri)
 
-					if
+					if method == methods.textDocument_didClose then
+						local task = state.session.task_queue[doc.uri]
+						if task then
+							task.cancel()
+						end
+						state.session.task_queue[doc.uri] = nil
+						state.doc_cache[doc.uri], state.diagnostics[doc.uri] = nil, nil
+						extmark.clear(buf)
+					elseif
 						method == methods.textDocument_didOpen
 						or method == methods.textDocument_didChange
 						or method == methods.textDocument_didSave
 					then
-						if #state.session.task_queue > 0 then
-							state.session.task_queue[1].cancel()
+						local previous = state.session.task_queue[doc.uri]
+						if previous then
+							previous.cancel()
 						end
 						local wdt = uuid()
 						progress.begin(wdt, "Indexing")
-
-						local done = nio.control.event()
-						local t = nio.run(function()
+						local task, finished
+						task = nio.run(function()
 							workspace.refresh(doc.uri, wdt)
+							local cache = state.doc_cache[doc.uri]
 							nio.scheduler()
+							if not state.documents[doc.uri] or state.doc_cache[doc.uri] ~= cache then
+								return
+							end
 							client.request_diagnostics(doc.uri)
-							done.set()
-						end, function(success)
+							if vim.api.nvim_buf_is_valid(buf) and state.doc_cache[doc.uri] == cache then
+								extmark.display(buf, cache.info)
+							end
+						end, function()
+							finished = true
+							if state.session.task_queue[doc.uri] == task then
+								state.session.task_queue[doc.uri] = nil
+							end
 							progress.finish(wdt)
 						end)
-						state.session.task_queue[1] = t
-
-						nio.run(function()
-							done.wait()
-							nio.scheduler()
-							extmark.display(buf, state.doc_cache[doc.uri].info)
-						end)
+						if not finished then
+							state.session.task_queue[doc.uri] = task
+						end
 					end
 				end)
 			end
 			if method == methods.exit then
-				dispatchers.on_exit(0, 15)
+				closing = true
+				dispatchers.on_exit(0, 0)
 			end
+			return true
 		end
 
 		-- Indicates if the client is shutting down
@@ -181,7 +210,10 @@ function M.server(opts)
 
 		-- Called when the client wants to terminate the process
 		function srv.terminate()
-			closing = true
+			if not closing then
+				closing = true
+				dispatchers.on_exit(0, 15)
+			end
 		end
 
 		return srv

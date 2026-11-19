@@ -24,6 +24,7 @@ end
 --- Runs the install action
 -- @return nil
 return function()
+	local cwd = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":h")
 	local cmd = get_command()
 
 	vim.ui.select({ "Confirm", "Cancel" }, {
@@ -32,6 +33,7 @@ return function()
 		if choice == "Confirm" then
 			local id = loading.new("| 󰑓 Syncing dependencies")
 			job({
+				cwd = cwd,
 				command = cmd,
 				on_start = function()
 					loading.start(id)

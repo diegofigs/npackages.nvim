@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "discord.js": "^14.22.1",
+    "dotenv": "^16.4.5",
+    "node-cron": "^4.2.1",
+    "util": "^0.12.5",
+    "winston": "^3.19.0",
+    "@example/common": "workspace:*"
+  },
+  "devDependencies": {
+    "@prisma/adapter-pg": "6.19.2",
+    "@types/node": "^25.2.3",
+    "@types/node-cron": "^3.0.11",
+    "@vitest/coverage-v8": "^3.2.1",
+    "oxfmt": "^0.43.0",
+    "oxlint": "^1.58.0",
+    "pg": "^8.20.0",
+    "prisma": "^6.19.2",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.1",
+    "@example/db": "workspace:*"
+  }
+}

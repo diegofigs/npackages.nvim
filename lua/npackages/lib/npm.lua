@@ -69,11 +69,9 @@ M.detect_package_manager = function()
 			command = "yarn -v",
 			on_success = function(full_version)
 				---@diagnostic disable-next-line: no-unknown
-				local major_version = full_version:sub(1, 1)
+				local major_version = full_version:match("^%s*(%d+)")
 
-				if major_version == "1" then
-					state.has_old_yarn = true
-				end
+				state.has_old_yarn = major_version == "1"
 			end,
 			on_error = function()
 				logger.error("Error detecting yarn version. Falling back to yarn <2")
@@ -85,7 +83,7 @@ M.detect_package_manager = function()
 		return M.PACKAGE_MANAGERS.yarn
 	end
 
-	local package_lock = io.open(cwd .. "package-lock.json", "r")
+	local package_lock = io.open(cwd .. "/package-lock.json", "r")
 
 	if package_lock ~= nil then
 		io.close(package_lock)

@@ -14,22 +14,22 @@ describe("npackages.lib.job", function()
 			end,
 		})
 
-		vim.wait(10000, function()
+		assert.is_true(vim.wait(10000, function()
 			return actual ~= ""
-		end)
+		end))
 	end)
 
 	it("can return error for invalid command", function()
-		local actual = ""
+		local failed = false
 		job({
 			command = "invalid_cmd",
-			on_error = function(result)
-				actual = result
+			on_error = function()
+				failed = true
 			end,
 		})
 
-		vim.wait(10000, function()
-			return actual ~= ""
-		end)
+		assert.is_true(vim.wait(10000, function()
+			return failed
+		end))
 	end)
 end)

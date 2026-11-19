@@ -1,7 +1,13 @@
-local nio = require("nio")
---- Rereads the current buffer value and reloads the buffer
----@return nil
+--- Reread the original buffer after a package manager changes it on disk.
+--- Safe from both regular job callbacks and nio tasks.
 return function(buf)
-	nio.api.nvim_buf_set_option(buf, "autoread", true)
-	nio.api.nvim_cmd({ cmd = "edit" }, {})
+	vim.schedule(function()
+		if not vim.api.nvim_buf_is_valid(buf) then
+			return
+		end
+		vim.bo[buf].autoread = true
+		vim.api.nvim_buf_call(buf, function()
+			vim.cmd("checktime")
+		end)
+	end)
 end

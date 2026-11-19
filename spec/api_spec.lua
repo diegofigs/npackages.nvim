@@ -73,3 +73,87 @@ describe("npackages.lib.api", function()
 	-- 	assert.not_nil(metadata)
 	-- end)
 end)
+
+describe("registry fetch transport", function()
+	for _, exit_code in ipairs({ 0, 28 }) do
+		it(
+			exit_code == 0 and "reads a completed temporary download" or "rejects partial timed-out downloads",
+			function()
+				local nio = require("nio")
+				local original, observed, output_path = vim.system, nil, nil
+				local original_close, close_count = nio.uv.fs_close, 0
+				nio.uv.fs_close = function(...)
+					close_count = close_count + 1
+					return original_close(...)
+				end
+				vim.system = function(args, _, callback)
+					observed = args
+					for index, argument in ipairs(args) do
+						if argument == "--output" then
+							output_path = args[index + 1]
+						end
+					end
+					assert.is_not_nil(output_path, "large registry payloads must download to a file")
+					vim.fn.writefile({ "metadata" }, output_path, "b")
+					vim.schedule(function()
+						callback({ code = exit_code })
+					end)
+				end
+				local done, ok, result = false, false, nil
+				nio.run(function()
+					result = api.curl_package("pure-rand")
+				end, function(success, err)
+					done, ok = true, success
+					if not success then
+						result = err
+					end
+				end)
+				local finished = vim.wait(1000, function()
+					return done
+				end)
+				vim.system = original
+				nio.uv.fs_close = original_close
+				assert.equals(exit_code == 0 and 1 or 0, close_count, "read descriptor must close exactly once")
+				assert.is_true(finished)
+				assert.equals(exit_code == 0, ok, tostring(result))
+				assert.equals(0, vim.fn.filereadable(output_path))
+				if ok then
+					assert.equals("metadata", result)
+				end
+				assert.equals("curl", observed[1])
+				assert.equals("-sL", observed[2])
+				assert.equals("npackages.nvim (https://github.com/diegofigs/npackages.nvim)", observed[6])
+				assert.is_true(vim.tbl_contains(observed, "--compressed"))
+			end
+		)
+	end
+
+	it("cleans up a download after its indexing task is cancelled", function()
+		local nio = require("nio")
+		local original, output_path, complete = vim.system, nil, nil
+		vim.system = function(args, _, callback)
+			for index, argument in ipairs(args) do
+				if argument == "--output" then
+					output_path = args[index + 1]
+				end
+			end
+			vim.fn.writefile({ "metadata" }, output_path, "b")
+			complete = callback
+		end
+		local task = nio.run(function()
+			api.curl_package("pure-rand")
+		end, function() end)
+		local started = vim.wait(1000, function()
+			return complete ~= nil
+		end)
+		task.cancel()
+		if complete then
+			complete({ code = 0 })
+		end
+		local cleaned = vim.wait(1000, function()
+			return output_path and vim.fn.filereadable(output_path) == 0
+		end)
+		vim.system = original
+		assert.is_true(started and cleaned)
+	end)
+end)

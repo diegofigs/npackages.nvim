@@ -26,7 +26,7 @@ local timer
 
 M.init = function()
 	if not timer then
-		timer = vim.loop.new_timer()
+		timer = vim.uv.new_timer()
 		if timer ~= nil then
 			timer:start(
 				0,

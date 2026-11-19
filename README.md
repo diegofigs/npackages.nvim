@@ -48,7 +48,7 @@
 
 ### Required
 
-- `neovim >= 0.9`
+- `neovim >= 0.11`
 - `curl`
 - [nvim-nio](https://github.com/nvim-neotest/nvim-nio)
 
@@ -83,54 +83,52 @@ use { 'diegofigs/npackages.nvim', requires = { "nvim-neotest/nvim-nio" } }
 
 ## :zap: Quick Setup
 
-This plugin automatically configures an LSP client
-that will provide diagnostics for your package.json dependencies.
-See the [Usage](#books-usage) section for more info.
-
-This is a file type plugin that works out of the box,
-so there is no need to call a `setup` function or configure anything
-to get this plugin working.
-
-You will most likely want to add some keymaps.
-Most keymaps are only useful in package.json files,
-so I suggest you define them in `vim.g.npackages.on_attach`
-
-Example:
-
-<!-- markdownlint-disable -->
+The JSON file type plugin activates automatically for `package.json`; there is no
+public `setup()` function. With lazy.nvim, put configuration in `init`, before
+file type activation. Do not use `opts` for npackages.
 
 ```lua
-vim.g.npackages = {
-  on_attach = function(bufnr)
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nt", "<cmd>Npackages toggle<cr>", {
-      desc = "Toggle Package Versions",
-    })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>na", "<cmd>Npackages add<cr>", {
-      desc = "Add Package",
-    })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nd", "<cmd>Npackages delete<cr>", {
-      desc = "Delete Package",
-    })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nu", "<cmd>Npackages update<cr>", {
-      desc = "Update Package",
-    })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nc", "<cmd>Npackages change_version<cr>", {
-      desc = "Change Version",
-    })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>ni", "<cmd>Npackages install<cr>", {
-      desc = "Install Package Dependencies",
-    })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nr", "<cmd>Npackages refresh<cr>", {
-      desc = "Refresh Packages",
-    })
-    vim.api.nvim_buf_set_keymap(bufnr, "n", "<leader>nR", "<cmd>Npackages reload<cr>", {
-      desc = "Reload Packages",
-    })
+{
+  "diegofigs/npackages.nvim",
+  dependencies = { "nvim-neotest/nvim-nio" },
+  lazy = false,
+  init = function()
+    vim.g.npackages = {
+      on_attach = function(bufnr)
+        local commands = {
+          t = "toggle", r = "refresh", R = "reload",
+          h = "hover_package", v = "hover_version",
+          a = "add", u = "update", d = "delete",
+          c = "change_version", i = "install",
+        }
+        for key, command in pairs(commands) do
+          vim.keymap.set("n", "<localleader>p" .. key,
+            "<cmd>Npackages " .. command .. "<cr>",
+            { buffer = bufnr, desc = "Packages: " .. command })
+        end
+      end,
+    }
   end,
 }
 ```
 
-<!-- markdownlint-restore -->
+`<localleader>p` keeps package commands separate from LazyVim's notification
+history on `<leader>n`. With the default localleader (`\`), use `\ph` for package
+information, `\pv` for versions, and `\pr` to refresh metadata. Customize these
+buffer-local mappings to suit your config.
+
+Run `:checkhealth npackages`, then inspect attached clients with
+`:lua vim.print(vim.lsp.get_clients({ bufnr = 0 }))`. Expect `npackages_ls`.
+No Mason server installation or nvim-lspconfig entry is needed for npackages.
+Registry metadata requires curl and network access. Package commands require
+the corresponding npm, pnpm, or Yarn executable.
+
+Keep your JSON LSP for schema validation and formatting. If you use LazyVim and
+Noice, see the [coexistence configuration and known issues](docs/neovim-compatibility.md#lazyvim-jsonls-and-noice).
+Updating to `latest` can cross major versions; use `change_version` to select a
+version. Add accepts one package spec, such as `next`, `next@15.0.0`, or
+`@types/node@22`; surrounding whitespace is trimmed, while embedded whitespace
+and option-like input are rejected. Cancel or empty input does not start a job.
 
 ## :books: Usage
 
@@ -158,7 +156,7 @@ npackages.nvim offers useful code actions to help you fix issues in your package
 
 - Diagnostics Fixes: Automatically fix issues identified by diagnostics, such as updating a dependency to the latest version or correcting a version format.
 
-- JSON Formatting: Quickly format your package.json for consistency and readability.
+- JSON formatting and schema validation are provided by your JSON language server, not npackages.
 
 - How it works: Code actions can be triggered via the LSP command palette or through key mappings, providing quick fixes and formatting options.
 
@@ -353,3 +351,12 @@ vim.cmd.Npackages('change_version')
 [lint-url]: https://github.com/diegofigs/npackages.nvim/actions/workflows/lint.yml
 [luarocks-shield]: https://img.shields.io/luarocks/v/diegofigs/npackages.nvim?logo=lua&color=purple&style=for-the-badge
 [luarocks-url]: https://luarocks.org/modules/diegofigs/npackages.nvim
+
+## Testing package commands
+
+Run `make test-integration` for npm, pnpm, Yarn Classic, and modern Yarn, or
+`make test-integration MANAGER=pnpm` for one manager. See the
+[integration test guide](tests/integration/README.md) for prerequisites and coverage.
+
+See [updating and releasing](docs/releasing.md) for local-copy updates, publishing
+v0.4.0, and switching lazy.nvim from a local checkout to a release pin.

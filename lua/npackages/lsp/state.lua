@@ -18,6 +18,7 @@ local State = {
 }
 
 ---@class DocCache
+---@field loading? boolean Metadata is being fetched; defer dependency diagnostics.
 ---@field packages table<string,JsonPackage>
 ---@field sections table<string,JsonSection>
 ---@field scripts table<string,JsonScript>
@@ -37,7 +38,7 @@ local State = {
 ---@class LspSession
 ---@field client_id integer
 ---@field dispatchers vim.lsp.rpc.Dispatchers
----@field task_queue nio.tasks.Task[]
+---@field task_queue table<lsp.DocumentUri,nio.tasks.Task>
 
 ---@class ApiPackageSummary
 ---@field name string

@@ -71,6 +71,7 @@ return function()
 
 	local package_manager = state.package_manager[util.current_buf()]
 	local buf = util.current_buf()
+	local cwd = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":h")
 
 	nio.run(function()
 		loading.start(id)
@@ -102,6 +103,7 @@ return function()
 				local change_id = loading.new("| 󰇚 Installing " .. dependency_name .. "@" .. selected_version)
 
 				job({
+					cwd = cwd,
 					command = get_change_version_command(dependency_name, selected_version, package_manager),
 					on_start = function()
 						loading.start(change_id)
