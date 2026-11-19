@@ -31,6 +31,7 @@ not require a migration to nvim-lspconfig or an externally installed server.
   local and skipped for registry fetching, version diagnostics, and registry-link actions. This does
   not resolve workspace package paths or discover local packages declared with ordinary SemVer
   ranges.
+- Indexing tasks and annotation IDs are scoped per document/buffer. Opening another manifest does not cancel its neighbors; superseded edits and closed buffers cannot publish stale annotations.
 - Initial dependency diagnostics wait for metadata loading to finish. Later refreshes retain the
   last published diagnostics while pending; actual fetch/decode failures are diagnosed after the
   attempt completes. A diagnostic pull before the document cache exists returns an empty report.
@@ -102,7 +103,11 @@ normalization handles surrounding newlines but rejects embedded newlines.
 Package-manager detection still relies on adjacent lockfiles. Workspace root/package discovery,
 ancestor lockfiles, mixed Yarn versions within one session, Yarn PnP, offline
 registry recovery, and rapid multi-buffer LSP edits are not covered by the new
-standalone-project integration matrix. Package commands change manifests and
+standalone-project integration matrix. Controlled tests separately cover
+concurrent first loads, same-document supersession, and closing during indexing.
+The four-request limit is per refresh, not a global transport cap: cancelled
+downloads finish or time out and clean up independently, so overlapping
+refreshes may temporarily exceed four live curl processes. Package commands change manifests and
 lockfiles on disk; save edits before running them. An unsaved modified buffer
 is not forcibly discarded by refresh.
 

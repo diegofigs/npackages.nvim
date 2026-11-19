@@ -13,6 +13,9 @@ M.display = function(buf, infos)
 		return
 	end
 
+	local marks = M.marks[buf] or {}
+	M.marks[buf] = marks
+
 	-- Cache current package names
 	local current_pkg_names = {}
 	for pkg_name, info in pairs(infos) do
@@ -45,7 +48,7 @@ M.display = function(buf, infos)
 		end
 
 		-- vim.api.nvim_buf_clear_namespace(buf, mark_ns, info.range.start.line, info.range["end"].line)
-		local existing_mark = M.marks[pkg_name]
+		local existing_mark = marks[pkg_name]
 		local mark_id = vim.api.nvim_buf_set_extmark(buf, mark_ns, info.range.start.line, -1, {
 			id = existing_mark,
 			virt_text = virt_text,
@@ -53,23 +56,25 @@ M.display = function(buf, infos)
 			hl_mode = "combine",
 		})
 		if not existing_mark then
-			M.marks[pkg_name] = mark_id
+			marks[pkg_name] = mark_id
 		end
 	end
 
 	-- Remove extmarks for packages that are no longer present in the infos array
-	for pkg_name, mark_id in pairs(M.marks) do
+	for pkg_name, mark_id in pairs(marks) do
 		if not current_pkg_names[pkg_name] then
 			vim.api.nvim_buf_del_extmark(buf, mark_ns, mark_id)
-			M.marks[pkg_name] = nil
+			marks[pkg_name] = nil
 		end
 	end
 end
 
 ---@param buf integer
 function M.clear(buf)
-	vim.api.nvim_buf_clear_namespace(buf, mark_ns, 0, -1)
-	M.marks = {}
+	if vim.api.nvim_buf_is_valid(buf) then
+		vim.api.nvim_buf_clear_namespace(buf, mark_ns, 0, -1)
+	end
+	M.marks[buf] = nil
 end
 
 return M

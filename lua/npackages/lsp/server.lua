@@ -152,33 +152,47 @@ function M.server(opts)
 					local doc = params.textDocument
 					local buf = vim.uri_to_bufnr(doc.uri)
 
-					if
+					if method == methods.textDocument_didClose then
+						local task = state.session.task_queue[doc.uri]
+						if task then
+							task.cancel()
+						end
+						state.session.task_queue[doc.uri] = nil
+						state.doc_cache[doc.uri], state.diagnostics[doc.uri] = nil, nil
+						extmark.clear(buf)
+					elseif
 						method == methods.textDocument_didOpen
 						or method == methods.textDocument_didChange
 						or method == methods.textDocument_didSave
 					then
-						if #state.session.task_queue > 0 then
-							state.session.task_queue[1].cancel()
+						local previous = state.session.task_queue[doc.uri]
+						if previous then
+							previous.cancel()
 						end
 						local wdt = uuid()
 						progress.begin(wdt, "Indexing")
-
-						local done = nio.control.event()
-						local t = nio.run(function()
+						local task, finished
+						task = nio.run(function()
 							workspace.refresh(doc.uri, wdt)
+							local cache = state.doc_cache[doc.uri]
 							nio.scheduler()
+							if not state.documents[doc.uri] or state.doc_cache[doc.uri] ~= cache then
+								return
+							end
 							client.request_diagnostics(doc.uri)
-							done.set()
-						end, function(success)
+							if vim.api.nvim_buf_is_valid(buf) and state.doc_cache[doc.uri] == cache then
+								extmark.display(buf, cache.info)
+							end
+						end, function()
+							finished = true
+							if state.session.task_queue[doc.uri] == task then
+								state.session.task_queue[doc.uri] = nil
+							end
 							progress.finish(wdt)
 						end)
-						state.session.task_queue[1] = t
-
-						nio.run(function()
-							done.wait()
-							nio.scheduler()
-							extmark.display(buf, state.doc_cache[doc.uri].info)
-						end)
+						if not finished then
+							state.session.task_queue[doc.uri] = task
+						end
 					end
 				end)
 			end

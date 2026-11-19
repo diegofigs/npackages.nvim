@@ -38,7 +38,7 @@ local State = {
 ---@class LspSession
 ---@field client_id integer
 ---@field dispatchers vim.lsp.rpc.Dispatchers
----@field task_queue nio.tasks.Task[]
+---@field task_queue table<lsp.DocumentUri,nio.tasks.Task>
 
 ---@class ApiPackageSummary
 ---@field name string
